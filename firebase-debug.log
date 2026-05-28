@@ -1,0 +1,87 @@
+[debug] [2026-05-17T18:34:35.826Z] ----------------------------------------------------------------------
+[debug] [2026-05-17T18:34:35.829Z] Command:       C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:indexes
+[debug] [2026-05-17T18:34:35.830Z] CLI Version:   15.15.0
+[debug] [2026-05-17T18:34:35.830Z] Platform:      win32
+[debug] [2026-05-17T18:34:35.830Z] Node Version:  v22.16.0
+[debug] [2026-05-17T18:34:35.830Z] Time:          Mon May 18 2026 02:34:35 GMT+0800 (China Standard Time)
+[debug] [2026-05-17T18:34:35.830Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-17T18:35:16.364Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-17T18:35:16.365Z] > authorizing via signed-in user (arneldalogdog3@gmail.com)
+[debug] [2026-05-17T18:35:16.365Z] [iam] checking project suriinai for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-05-17T18:35:16.366Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:16.367Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:16.368Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/suriinai:testIamPermissions [none]
+[debug] [2026-05-17T18:35:16.368Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/suriinai:testIamPermissions  x-goog-user-project=suriinai
+[debug] [2026-05-17T18:35:16.368Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suriinai:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-05-17T18:35:17.096Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/suriinai:testIamPermissions 200
+[debug] [2026-05-17T18:35:17.096Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/suriinai:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'suriinai'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-05-17T18:35:17.102Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:17.102Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:17.102Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default) [none]
+[debug] [2026-05-17T18:35:18.786Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default) 200
+[debug] [2026-05-17T18:35:18.787Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default) {"name":"projects/suriinai/databases/(default)","uid":"f0157fa5-8b7d-4b4e-a8a3-12978f5daea0","createTime":"2026-04-18T06:37:58.378900Z","updateTime":"2026-04-18T06:37:58.378900Z","locationId":"asia-southeast1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-05-17T17:35:18.719712Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"zas","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IJC816n7wJQDMLL17ILl9pMD"}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-05-17T18:35:18.789Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:18.789Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:18.789Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/suriinai:test [none]
+[debug] [2026-05-17T18:35:18.789Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/suriinai:test [omitted]
+[debug] [2026-05-17T18:35:20.314Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/suriinai:test 200
+[debug] [2026-05-17T18:35:20.314Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/suriinai:test {"issues":[{"sourcePosition":{"fileName":"firestore.rules","line":49,"column":14,"currentOffset":1458,"endOffset":1476},"description":"Unused function: isValidNotification.","severity":"WARNING"}]}
+[warn] !  [W] 49:14 - Unused function: isValidNotification. 
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[info] i  firestore: deploying indexes... 
+[info] i  firestore: your indexes indexes are specified in the v1beta1 API format. Please upgrade to the new index API format by running firebase firestore:indexes again and saving the result. 
+[debug] [2026-05-17T18:35:20.318Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:20.318Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:20.318Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-05-17T18:35:20.723Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-05-17T18:35:20.723Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/-/indexes {"indexes":[{"name":"projects/suriinai/databases/(default)/collectionGroups/Notifications/indexes/CICAgJim14AK","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"isRead","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/suriinai/databases/(default)/collectionGroups/Reports/indexes/CICAgOjXh4EK","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/suriinai/databases/(default)/collectionGroups/Notifications/indexes/CICAgJiUpoMK","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}],"state":"READY","density":"SPARSE_ALL"}]}
+[debug] [2026-05-17T18:35:20.724Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:20.724Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:20.724Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-05-17T18:35:21.126Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-05-17T18:35:21.126Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/suriinai/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}}]}
+[debug] [2026-05-17T18:35:21.126Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:21.126Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:21.127Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default) [none]
+[debug] [2026-05-17T18:35:21.506Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default) 200
+[debug] [2026-05-17T18:35:21.506Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/suriinai/databases/(default) {"name":"projects/suriinai/databases/(default)","uid":"f0157fa5-8b7d-4b4e-a8a3-12978f5daea0","createTime":"2026-04-18T06:37:58.378900Z","updateTime":"2026-04-18T06:37:58.378900Z","locationId":"asia-southeast1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-05-17T17:35:21.443448Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"zas","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IIHc/ar7wJQDMLL17ILl9pMD"}
+[debug] [2026-05-17T18:35:21.507Z] Creating new index: {"collectionGroup":"user_notifications","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}]}
+[debug] [2026-05-17T18:35:21.507Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:21.507Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:21.508Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/user_notifications/indexes [none]
+[debug] [2026-05-17T18:35:21.508Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/user_notifications/indexes {"fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-05-17T18:35:22.120Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/user_notifications/indexes 200
+[debug] [2026-05-17T18:35:22.120Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/user_notifications/indexes {"name":"projects/suriinai/databases/(default)/operations/S0lvOUZqSmdBQ0lDDCoDIDY5NjU5OGRlN2ZmMS02NTdhLWQzYzQtMGU0NC05OTU3NzhiMSQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-05-17T18:35:21.934474Z","index":"projects/suriinai/databases/(default)/collectionGroups/user_notifications/indexes/CICAgJjF9oIK","state":"INITIALIZING"}}
+[debug] [2026-05-17T18:35:22.120Z] Creating new index: {"collectionGroup":"staff_notifications","queryScope":"COLLECTION","fields":[{"fieldPath":"targetRole","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}]}
+[debug] [2026-05-17T18:35:22.120Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:22.120Z] Checked if tokens are valid: true, expires at: 1779045830761
+[debug] [2026-05-17T18:35:22.120Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/staff_notifications/indexes [none]
+[debug] [2026-05-17T18:35:22.120Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/staff_notifications/indexes {"fields":[{"fieldPath":"targetRole","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-05-17T18:35:22.588Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/staff_notifications/indexes 200
+[debug] [2026-05-17T18:35:22.588Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/suriinai/databases/(default)/collectionGroups/staff_notifications/indexes {"name":"projects/suriinai/databases/(default)/operations/S0U0ejdqSmdBQ0lDDCoDIDk4MjZiY2JhMDMyZS04ODhhLWY1NTQtZDM3MS00YTkzNTRhYSQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-05-17T18:35:22.511101Z","index":"projects/suriinai/databases/(default)/collectionGroups/staff_notifications/indexes/CICAgJj7z4EK","state":"INITIALIZING"}}
+[debug] [2026-05-17T18:35:22.589Z] Skipping existing index: {"collectionGroup":"Reports","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}]}
+[debug] [2026-05-17T18:35:22.589Z] Skipping existing index: {"collectionGroup":"Notifications","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}]}
+[debug] [2026-05-17T18:35:22.589Z] Skipping existing index: {"collectionGroup":"Notifications","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"isRead","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}]}
+[info] +  firestore: deployed indexes in firestore.indexes.json successfully for (default) database 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/suriinai/overview
+[debug] [2026-05-17T18:35:22.611Z] Error: EBUSY: resource busy or locked, unlink 'C:\xampp\htdocs\Suriin-AI\firebase-debug.log'
+    at Object.unlinkSync (node:fs:1953:11)
+    at process.<anonymous> (C:\Users\Admin\AppData\Local\nvm\v22.16.0\node_modules\firebase-tools\lib\bin\cli.js:44:16)
+    at process.emit (node:events:530:35)
+    at process.exit (node:internal/process/per_thread:194:15)
+    at C:\Users\Admin\AppData\Local\nvm\v22.16.0\node_modules\firebase-tools\lib\command.js:131:25
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: An unexpected error has occurred.

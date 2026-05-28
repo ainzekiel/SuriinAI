@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Suriin AI - Expert Case History.">
+  <title>Suriin AI - Expert Resolved Cases</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <div class="dashboard" id="dashboard-wrapper" style="display:none;">
+    <header class="dashboard-header">
+      <div class="header-brand">
+        <div class="header-brand__icon" aria-hidden="true">🛡️</div>
+        <span class="header-brand__name">Suriin AI</span>
+        <span class="header-brand__role">Expert</span>
+      </div>
+      <div class="header-user">
+        <div class="header-user__meta">
+          <span class="header-user__email" id="user-email"></span>
+        </div>
+
+        <div class="header-user__actions">
+          <!-- ── Notification Bell ──────────────────────────────── -->
+          <div class="notification-bell" id="notification-bell-container">
+            <button class="notification-bell__btn" id="notification-bell-btn" aria-label="Notifications">
+              <span class="notification-bell__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#6C63FF;display:block;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </span>
+              <span class="notification-bell__badge" id="notification-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Notification Dropdown -->
+            <div class="notification-dropdown" id="notification-dropdown" style="display: none;">
+              <div class="notification-dropdown__header">
+                <h3>Notifications</h3>
+                <button class="notification-dropdown__mark-all" id="mark-all-read-btn" style="display: none;">
+                  Mark all as read
+                </button>
+              </div>
+
+              <div class="notification-dropdown__list" id="notification-list">
+                <!-- Notifications populated here by JavaScript -->
+              </div>
+
+              <div class="notification-dropdown__empty" id="notification-empty" style="display: none;">
+                <div class="notification-empty__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;opacity:0.5;display:block;">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </div>
+                <div class="notification-empty__text">No new notifications</div>
+              </div>
+            </div>
+          </div>
+          <!-- ── End Notification Bell ──────────────────────────── -->
+
+          <!-- ── Avatar + Dropdown ──────────────────────── -->
+          <div class="avatar-menu" id="avatar-menu">
+            <div class="header-user__avatar" id="user-avatar" role="button" aria-haspopup="true" aria-expanded="false" title="Account menu"></div>
+            <div class="avatar-dropdown" id="avatar-dropdown" style="display:none;">
+              <div class="avatar-dropdown__user-info" id="avatar-dropdown-user-info"></div>
+              <div class="avatar-dropdown__divider"></div>
+              <a href="/expert-settings" class="avatar-dropdown__item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+              </a>
+              <div class="avatar-dropdown__divider"></div>
+              <button class="avatar-dropdown__item avatar-dropdown__item--danger" id="avatar-logout-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="dashboard-layout">
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <a href="/expert-dashboard" class="sidebar-link" id="nav-active">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </span>
+            <span class="sidebar-link__text">Active Triage</span>
+          </a>
+          <a href="/expert-resolved" class="sidebar-link sidebar-link--active" id="nav-resolved">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Case History</span>
+          </a>
+          <a href="/expert-analytics" class="sidebar-link" id="nav-analytics">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </span>
+            <span class="sidebar-link__text">Scam Analytics</span>
+          </a>
+          <div class="sidebar-divider"></div>
+          <a href="/expert-settings" class="sidebar-link" id="nav-settings">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Settings</span>
+          </a>
+        </nav>
+      </aside>
+
+      <main class="dashboard-main">
+        <h1 class="dashboard-title">Resolved Case History</h1>
+        <p class="dashboard-subtitle">Read-only archive of cases you have personally closed.</p>
+
+        <section class="reports-section">
+          <div class="reports-header">
+            <h2 class="reports-header__title">Closed Cases</h2>
+            <span class="reports-header__count" id="resolved-count">0 cases</span>
+          </div>
+
+          <!-- Resolved Cases -->
+          <div class="triage-tabs" style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); border-bottom: 1px solid var(--clr-border);">
+            <button class="tab-btn active" id="tab-resolved" style="background: none; border: none; border-bottom: 2px solid var(--clr-accent); color: var(--clr-accent); padding: var(--space-sm) var(--space-md); font-size: var(--font-sm); font-weight: 500; cursor: pointer;">Resolved</button>
+          </div>
+
+          <!-- Filter bar -->
+          <div class="dashboard-filter-bar" style="padding: var(--space-sm) var(--space-md); display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center;">
+            <select id="filter-resolved-sort" class="dashboard-filter-select">
+              <option value="newest" selected>Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+            <select id="filter-resolved-verdict" class="dashboard-filter-select">
+              <option value="all">All Verdicts</option>
+              <option value="safe">Verified Safe</option>
+              <option value="threat">Confirmed Threat</option>
+            </select>
+          </div>
+
+          <div style="width: 100%; overflow: visible;">
+            <table class="reports-table" id="resolved-table" style="table-layout: fixed; width: 100%;">
+              <thead>
+                <tr>
+                  <th id="th-resolved-at" style="width: 16%; min-width: 140px;">Resolved At</th>
+                  <th id="th-resolved-by" style="width: 14%; min-width: 120px;">Resolved by</th>
+                  <th id="th-platform" style="width: 14%; min-width: 110px;">Platform</th>
+                  <th id="th-verdict" style="width: 18%; min-width: 180px;">Expert Verdict</th>
+                  <th id="th-factors" style="width: 26%; min-width: 180px;">Risk Factors</th>
+                  <th id="th-reporter" style="width: 12%; min-width: 110px;">Reporter</th>
+                </tr>
+              </thead>
+              <tbody id="resolved-tbody">
+                <tr class="skeleton-row"><td colspan="6"><div class="skeleton-cell"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="6"><div class="skeleton-cell"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="6"><div class="skeleton-cell"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-footer" id="resolved-pagination" style="display: none; justify-content: center; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--clr-border);">
+            <button class="btn btn--ghost btn--sm" id="resolved-pagination-prev" style="display: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="m15 18-6-6 6-6"/></svg>
+              Previous
+            </button>
+            <div id="resolved-pagination-numbers" style="display: flex; gap: 4px; align-items: center;"></div>
+            <button class="btn btn--ghost btn--sm" id="resolved-pagination-next" style="display: none;">
+              Next
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+
+          <div class="empty-state" id="resolved-empty" style="display:none;">
+            <div class="empty-state__icon">HIS</div>
+            <div class="empty-state__title">No resolved cases yet</div>
+            <p class="empty-state__desc">Resolved reports will appear here once cases are closed.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="review-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal" id="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" style="position:relative; max-height:90vh; overflow-y:auto; margin:auto;">
+      <div class="modal-header">
+        <div class="modal-header__left" style="flex: 1;">
+          <span class="modal-header__badge" style="font-size: var(--font-xs); font-weight: 700; color: var(--clr-accent); text-transform: uppercase; letter-spacing: 0.07em;">Case Review</span>
+          <h2 class="modal-header__title" id="review-modal-title" style="margin-top: 4px;">#REPORT_ID</h2>
+          <div class="modal-header__meta" style="margin-top: var(--space-sm); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md);">
+            <span style="font-size: var(--font-sm); color: var(--clr-text-secondary);">
+              Reported by: <strong id="modal-reported-by" style="color: var(--clr-text-primary);">#USR-UNKNOWN</strong>
+            </span>
+            <span id="modal-audit-trail-resolved" style="font-size: var(--font-sm); color: var(--clr-text-secondary);">
+              Resolved by: <strong id="modal-resolved-by" style="color: var(--clr-text-primary);">Expert Name</strong>
+            </span>
+            <span style="font-size: var(--font-sm); color: var(--clr-text-secondary);">
+              <span id="modal-audit-label">Date</span>: <strong id="modal-resolved-at" style="color: var(--clr-text-primary);">Date</strong>
+            </span>
+            <span id="modal-status-badge-resolved" class="badge" style="font-size: var(--font-xs); padding: 2px 8px; display: none;"></span>
+            <span id="modal-final-verdict-badge"></span>
+          </div>
+        </div>
+        <button class="modal-close" id="review-modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Platform & Source Section (50/50 uniform columns) -->
+        <div class="modal-section">
+          <h3 class="modal-section__title">Platform & Source</h3>
+          
+          <div style="display: flex; align-items: stretch; gap: var(--space-lg); margin-bottom: var(--space-md);">
+            <!-- Left: Platform (50%) -->
+            <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-sm);">
+              <div style="background: var(--clr-bg-secondary); padding: var(--space-md); border-radius: var(--radius-md); flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <div style="font-size: var(--font-xs); color: var(--clr-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Platform</div>
+                <div style="font-size: var(--font-md); font-weight: 600; color: var(--clr-text-primary);" id="modal-platform-name">Unknown</div>
+              </div>
+            </div>
+            
+            <!-- Right: Source Identifier (50%) -->
+            <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-md);">
+              <div style="background: var(--clr-bg-secondary); padding: var(--space-md); border-radius: var(--radius-md); flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <div style="font-size: var(--font-xs); color: var(--clr-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Source Identifier</div>
+                <div style="font-size: var(--font-sm); font-weight: 500; color: var(--clr-text-primary); word-break: break-all;" id="modal-source-identifier">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Context Section (conditional, styled like Raw Evidence) -->
+        <div id="modal-user-context-section" class="modal-section" style="display: none;">
+          <h3 class="modal-section__title">User Context</h3>
+          <div id="modal-user-context" class="modal-extracted-text" style="max-height: 200px; white-space: pre-wrap; font-family: var(--font-sans); font-size: var(--font-sm); line-height: 1.5;">
+            —
+          </div>
+        </div>
+
+        <div class="modal-section" id="modal-image-wrapper" style="display:none;">
+          <h3 class="modal-section__title">Submitted Image</h3>
+          <img id="modal-image" alt="Submitted evidence" style="max-width: 100%; border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
+        </div>
+
+        <!-- AI Analysis Section (30/70 horizontal layout) -->
+        <div class="modal-section">
+          <h3 class="modal-section__title">AI Analysis</h3>
+          
+          <div style="display: flex; align-items: flex-start; gap: var(--space-lg); margin-bottom: var(--space-md);">
+            <!-- Left: Risk Threat (30%) -->
+            <div style="flex: 0 0 30%; min-width: 0;">
+              <div style="font-size: var(--font-xs); color: var(--clr-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Risk Threat</div>
+              <div style="font-size: var(--font-sm); color: var(--clr-text-primary);" id="modal-risk-threat">—</div>
+            </div>
+            
+            <!-- Right: Risk Factors (70%) -->
+            <div style="flex: 0 0 70%; min-width: 0;">
+              <div style="font-size: var(--font-xs); color: var(--clr-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Risk Factors</div>
+              <div style="font-size: var(--font-sm); color: var(--clr-text-primary); line-height: 1.5;" id="modal-risk-factors">No factors</div>
+            </div>
+          </div>
+
+          <!-- AI Confidence row -->
+          <div style="display: flex; align-items: flex-start; gap: var(--space-lg);">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: var(--font-xs); color: var(--clr-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">AI Confidence</div>
+              <div style="font-size: var(--font-sm); font-weight: 600;" id="modal-ai-confidence">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h3 class="modal-section__title">Raw Evidence</h3>
+          <pre id="modal-raw-evidence" class="modal-extracted-text" style="max-height: 240px;"></pre>
+        </div>
+
+        <!-- Expert Notes / Reason for Dismissal (Read-only text display) -->
+        <div class="modal-section" id="modal-notes-section">
+          <h3 class="modal-section__title" id="modal-notes-label">Expert Notes</h3>
+          <div id="modal-expert-notes-display" class="modal-extracted-text" style="background: var(--clr-bg-secondary); border: 1px solid var(--clr-border); border-radius: var(--radius-md); padding: var(--space-md); color: var(--clr-text-secondary); min-height: 80px; white-space: pre-wrap; font-family: var(--font-sans);">
+            <p class="text-muted" style="margin: 0; color: var(--clr-text-muted);">No notes available.</p>
+          </div>
+        </div>
+
+        <!-- Final Verdict (Read-only single badge) -->
+        <div class="modal-section">
+          <h3 class="modal-section__title">Final Verdict</h3>
+          <div id="modal-final-verdict-display" style="display: flex; gap: var(--space-sm);">
+            <span id="modal-verdict-badge" class="badge badge--safe">Safe</span>
+          </div>
+        </div>
+        
+        <!-- Remediation Plan (Conditional, read-only) -->
+        <div class="modal-section" id="modal-remediation-wrapper" style="display: none;">
+          <h3 class="modal-section__title">Remediation Plan</h3>
+          <div id="modal-remediation-display" class="modal-extracted-text" style="background: var(--clr-bg-secondary); border: 1px solid var(--clr-border); border-radius: var(--radius-md); padding: var(--space-md); color: var(--clr-text-secondary); white-space: pre-wrap; font-family: var(--font-sans);">
+          </div>
+        </div>
+
+        <!-- Safety Justification (Conditional, read-only) -->
+        <div class="modal-section" id="modal-safety-wrapper" style="display: none;">
+          <h3 class="modal-section__title">Safety Justification</h3>
+          <div id="modal-safety-display" class="modal-extracted-text" style="background: var(--clr-bg-secondary); border: 1px solid var(--clr-border); border-radius: var(--radius-md); padding: var(--space-md); color: var(--clr-text-secondary); white-space: pre-wrap; font-family: var(--font-sans);">
+          </div>
+        </div>
+        
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; align-items: center;">
+        <button type="button" id="review-modal-cancel-btn" class="btn btn--ghost btn--sm">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notification-bell.js"></script>
+  <script src="/static/js/audit-logger.js"></script>
+  <script src="/static/js/expert-resolved.js"></script>
+
+  <script>
+    // Avatar dropdown toggle
+    const avatarEl = document.getElementById('user-avatar');
+    const dropdownEl = document.getElementById('avatar-dropdown');
+    const logoutBtn = document.getElementById('avatar-logout-btn');
+
+    if (avatarEl && dropdownEl) {
+      avatarEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdownEl.style.display !== 'none';
+        dropdownEl.style.display = isOpen ? 'none' : 'block';
+        avatarEl.setAttribute('aria-expanded', !isOpen);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!avatarEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+          dropdownEl.style.display = 'none';
+          avatarEl.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        firebase.auth().signOut().then(() => {
+          window.location.href = '/';
+        });
+      });
+    }
+
+    // Populate avatar dropdown user info
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        const userInfoEl = document.getElementById('avatar-dropdown-user-info');
+        if (userInfoEl) {
+          userInfoEl.innerHTML = `<strong>${user.email}</strong><br><small style="color: var(--clr-text-muted);">Expert Reviewer</small>`;
+        }
+        document.getElementById('user-email').textContent = user.email;
+        // Set avatar
+        if (avatarEl) {
+          avatarEl.textContent = user.email?.charAt(0).toUpperCase() || 'E';
+        }
+      }
+    });
+  </script>
+
+  <style>
+    /* Loading spinner animation */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Expert Notes cell with proper ellipses */
+    .notes-cell {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    /* Tab hover effects */
+    .tab-btn:hover {
+      color: var(--clr-text-primary) !important;
+    }
+
+    /* Table row hover */
+    .table-row-hover:hover {
+      background: var(--clr-bg-hover, rgba(255,255,255,0.05));
+    }
+
+    /* Badge styles for dismissed modal */
+    .badge--safe {
+      background: rgba(34,197,94,0.15);
+      color: #22c55e;
+      border: 1px solid rgba(34,197,94,0.3);
+    }
+    .badge--warning {
+      background: rgba(245,158,11,0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245,158,11,0.3);
+    }
+    .badge--critical {
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+
+    /* Ensure table cells don't overflow */
+    #resolved-table td {
+      overflow: hidden;
+      vertical-align: middle;
+    }
+
+    /* Two-line clamp utility for long cell content */
+    .clamp-2 {
+      display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: normal;
+      line-height: 1.35;
+    }
+
+    .wrap-anywhere {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    /* Apply clamping to Platform (3) and Risk Factors (5) */
+    #resolved-table td:nth-child(3),
+    #resolved-table td:nth-child(5) {
+      white-space: normal;
+    }
+  </style>
+</body>
+</html>
