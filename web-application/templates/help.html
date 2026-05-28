@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Suriin AI — Step-by-step guide to installing and using the Suriin AI Chrome Extension.">
+  <title>Suriin AI — Help & Guide</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    if (sessionStorage.getItem('suriin_cached_uid')) {
+      document.documentElement.classList.add('suriin-cached');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard-wrapper" style="display:none;">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="dashboard-header">
+      <div class="header-brand">
+        <div class="header-brand__icon" aria-hidden="true">🛡️</div>
+        <span class="header-brand__name">Suriin AI</span>
+        <span class="header-brand__role" id="header-role-badge">User</span>
+      </div>
+      <div class="header-user">
+        <div class="header-user__meta">
+          <span class="header-user__email" id="user-email"></span>
+        </div>
+
+        <div class="header-user__actions">
+          <!-- ── Notification Bell ───────────────────────── -->
+          <div class="notification-bell" id="notification-bell-container">
+            <button class="notification-bell__btn" id="notification-bell-btn" aria-label="Notifications">
+              <span class="notification-bell__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#6C63FF;display:block;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </span>
+              <span class="notification-bell__badge" id="notification-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Notification Dropdown -->
+            <div class="notification-dropdown" id="notification-dropdown" style="display: none;">
+              <div class="notification-dropdown__header">
+                <h3>Notifications</h3>
+                <button class="notification-dropdown__mark-all" id="mark-all-read-btn" style="display: none;">
+                  Mark all as read
+                </button>
+              </div>
+
+              <div class="notification-dropdown__list" id="notification-list">
+                <!-- Notifications populated here by JavaScript -->
+              </div>
+
+              <div class="notification-dropdown__empty" id="notification-empty" style="display: none;">
+                <div class="notification-empty__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;opacity:0.5;display:block;">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </div>
+                <div class="notification-empty__text">No new notifications</div>
+              </div>
+            </div>
+          </div>
+          <!-- ── End Notification Bell ──────────────────────── -->
+
+          <!-- ── Avatar + Dropdown ──────────────────────── -->
+          <div class="avatar-menu" id="avatar-menu">
+            <div class="header-user__avatar" id="user-avatar" role="button" aria-haspopup="true" aria-expanded="false" title="Account menu"></div>
+            <div class="avatar-dropdown" id="avatar-dropdown" style="display:none;">
+              <div class="avatar-dropdown__user-info" id="avatar-dropdown-user-info"></div>
+              <div class="avatar-dropdown__divider"></div>
+              <a href="/settings" class="avatar-dropdown__item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+              </a>
+              <div class="avatar-dropdown__divider"></div>
+              <button class="avatar-dropdown__item avatar-dropdown__item--danger" id="avatar-logout-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Layout: Sidebar + Main ──────────────────────────────────────── -->
+    <div class="dashboard-layout">
+
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+          <a href="/user-dashboard" class="sidebar-link" id="nav-reports">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </span>
+            <span class="sidebar-link__text" id="nav-reports-text">My Reports</span>
+          </a>
+          <a href="/scam-awareness" class="sidebar-link" id="nav-awareness">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Scam Awareness</span>
+          </a>
+          <a href="/help" class="sidebar-link sidebar-link--active" id="nav-help">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <span class="sidebar-link__text">Help & Guide</span>
+          </a>
+          <div class="sidebar-divider"></div>
+          <a href="/settings" class="sidebar-link" id="nav-settings">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Settings</span>
+          </a>
+          <a href="/privacy" class="sidebar-link" id="nav-privacy">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <span class="sidebar-link__text">Privacy Policy</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- ── Main Content ────────────────────────────────────────────────── -->
+      <main class="page-content">
+        <h1>Help & Getting Started</h1>
+        <p class="page-subtitle">Learn how to install the Suriin AI Chrome Extension and link it to your dashboard.</p>
+
+        <!-- ── Step-by-Step Guide ───────────────────────────────────────── -->
+        <div class="content-card">
+          <div class="content-card__header">
+            <div class="content-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <h2 class="content-card__title">Setup Guide</h2>
+          </div>
+
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-item__number">1</div>
+              <div class="step-item__content">
+                <h3 class="step-item__title">Install the Suriin AI Chrome Extension</h3>
+                <p class="step-item__desc">
+                  Download the Suriin AI Scanner extension from the Chrome Web Store or load it manually
+                  in Developer Mode. Navigate to <strong>chrome://extensions</strong>, enable
+                  <em>"Developer mode"</em> in the top-right corner, then click <strong>"Load unpacked"</strong>
+                  and select the extension folder.
+                </p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-item__number">2</div>
+              <div class="step-item__content">
+                <h3 class="step-item__title">Pin the Extension to Your Toolbar</h3>
+                <p class="step-item__desc">
+                  Click the puzzle piece icon (🧩) in the Chrome toolbar, find <strong>Suriin AI Scanner</strong>,
+                  and click the pin icon to keep it visible. This gives you quick access to the extension popup.
+                </p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-item__number">3</div>
+              <div class="step-item__content">
+                <h3 class="step-item__title">Log In with Your Suriin AI Account</h3>
+                <p class="step-item__desc">
+                  Open the extension popup by clicking its icon. Enter the same email and password you used
+                  to register on this dashboard. This links your browser scans to your account so reports
+                  appear in <strong>My Reports</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-item__number">4</div>
+              <div class="step-item__content">
+                <h3 class="step-item__title">Browse Normally — The Scanner Runs Automatically</h3>
+                <p class="step-item__desc">
+                  Once logged in, the extension monitors web pages in the background. When it detects
+                  suspicious content — phishing pages, investment scams, fake job postings — it automatically
+                  extracts the text, analyzes it using AI-powered heuristics, and submits a report.
+                </p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-item__number">5</div>
+              <div class="step-item__content">
+                <h3 class="step-item__title">Review Reports on Your Dashboard</h3>
+                <p class="step-item__desc">
+                  Head to <a href="/user-dashboard"><strong>My Reports</strong></a> to see all flagged content.
+                  Each report shows a risk score, risk factors, and the extracted text. Click <strong>"View"</strong>
+                  to see full details, or download a <strong>PDF Evidence</strong> file for your records.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── How Risk Scoring Works ───────────────────────────────────── -->
+        <div class="content-card">
+          <div class="content-card__header">
+            <div class="content-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <h2 class="content-card__title">Understanding Risk Scores</h2>
+          </div>
+          <div class="content-card__desc">
+            <p>
+              Every scanned page receives a <strong>Risk Score</strong> between 0% and 100%, calculated
+              using natural language processing (NLP) heuristics. The score reflects how many
+              scam indicators were found in the extracted text.
+            </p>
+            <ul>
+              <li><strong style="color: var(--clr-safe);">0–39% (Safe)</strong> — No significant scam indicators detected. The content appears legitimate.</li>
+              <li><strong style="color: var(--clr-warning);">40–69% (Warning)</strong> — Some suspicious elements found. Exercise caution and verify the source.</li>
+              <li><strong style="color: var(--clr-critical);">70–100% (Critical)</strong> — Multiple strong scam indicators detected. Avoid interacting with this content.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── FAQ ──────────────────────────────────────────────────────── -->
+        <div class="content-card">
+          <div class="content-card__header">
+            <div class="content-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h2 class="content-card__title">Frequently Asked Questions</h2>
+          </div>
+
+          <div class="faq-item">
+            <h3 class="faq-item__question">Does the extension slow down my browser?</h3>
+            <p class="faq-item__answer">
+              No. Suriin AI Scanner is lightweight and runs asynchronously. Text extraction happens
+              in the background without affecting page load times. The extension only activates on
+              pages with detectable text content.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3 class="faq-item__question">Can I scan a page manually?</h3>
+            <p class="faq-item__answer">
+              Yes. Open the extension popup and click the <strong>"Scan This Page"</strong> button.
+              The scan results will appear in the popup and a report will be submitted to your dashboard.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3 class="faq-item__question">What happens after I submit a report?</h3>
+            <p class="faq-item__answer">
+              Reports are stored securely in the Suriin AI database. Expert investigators (law enforcement,
+              cybersecurity analysts) review flagged content and may update the report status to
+              "Under Investigation" or "Resolved."
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3 class="faq-item__question">Is my personal information shared with anyone?</h3>
+            <p class="faq-item__answer">
+              No. Your identity is protected. Reports are associated with your account ID only, and
+              investigators cannot see your personal details. See our
+              <a href="/privacy">Privacy Policy</a> for full details.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3 class="faq-item__question">How do I uninstall the extension?</h3>
+            <p class="faq-item__answer">
+              Right-click the Suriin AI icon in your toolbar and select <strong>"Remove from Chrome"</strong>,
+              or go to <strong>chrome://extensions</strong> and click "Remove." Your dashboard account
+              and existing reports will remain unaffected.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3 class="faq-item__question">I need more help. How can I contact support?</h3>
+            <p class="faq-item__answer">
+              For technical issues or questions, email us at
+              <strong>suriin.ai.capstone@gmail.com</strong>. We aim to respond within 24–48 hours.
+            </p>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notification-bell.js"></script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Suriin AI — Real-time scam detection system. Log in to access your dashboard.">
+  <title>Suriin AI — Login</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Loading overlay while auth state resolves -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <main class="login-wrapper" style="display:none;" id="login-wrapper">
+    <div class="login-card">
+      <!-- Brand -->
+      <div class="login-brand">
+        <div class="login-brand__icon" aria-hidden="true">🛡️</div>
+        <h1 class="login-brand__title">Suriin AI</h1>
+        <p class="login-brand__subtitle">Real-Time Scam Detection</p>
+      </div>
+
+      <!-- Error display -->
+      <div id="login-error" class="login-error" role="alert"></div>
+
+      <!-- Auth Mode Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="signin" type="button">Sign In</button>
+        <button class="auth-tab" data-mode="signup" type="button">Create Account</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="login-form" class="login-form auth-form active" autocomplete="on">
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <input
+            type="email"
+            id="login-email"
+            class="form-input"
+            placeholder="you@example.com"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input
+            type="password"
+            id="login-password"
+            class="form-input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <div class="form-footer">
+          <a href="#" id="forgot-password-link" class="forgot-password-link">Forgot Password?</a>
+        </div>
+
+        <button type="submit" id="login-btn" class="btn btn--primary btn--full">
+          <span class="spinner"></span>
+          <span class="btn-text">Sign In</span>
+        </button>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="signup-form" class="signup-form auth-form" autocomplete="on">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="signup-first-name">First Name</label>
+            <input
+              type="text"
+              id="signup-first-name"
+              class="form-input"
+              placeholder="Juan"
+              autocomplete="given-name"
+              required
+            >
+            <span class="field-error-msg" id="error-first-name"></span>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="signup-last-name">Last Name</label>
+            <input
+              type="text"
+              id="signup-last-name"
+              class="form-input"
+              placeholder="dela Cruz"
+              autocomplete="family-name"
+              required
+            >
+            <span class="field-error-msg" id="error-last-name"></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-email">Email Address</label>
+          <input
+            type="email"
+            id="signup-email"
+            class="form-input"
+            placeholder="you@example.com"
+            autocomplete="email"
+            required
+          >
+          <span class="field-error-msg" id="error-email"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-phone">Phone Number <span style="font-size:11px;color:var(--clr-text-muted);">(optional)</span></label>
+          <input
+            type="tel"
+            id="signup-phone"
+            class="form-input"
+            placeholder="+63 900 000 0000"
+            autocomplete="tel"
+            pattern="[0-9+\s\-]{7,20}"
+          >
+          <span class="field-error-msg" id="error-phone"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <div style="position:relative;">
+            <input
+              type="password"
+              id="signup-password"
+              class="form-input"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              required
+            >
+            <button type="button" id="toggle-signup-password" aria-label="Toggle password visibility"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--clr-text-muted);padding:2px 4px;font-size:16px;">👁</button>
+          </div>
+          <!-- Compact strength bar -->
+          <div id="password-strength-bar-wrap" style="margin-top:6px;height:4px;border-radius:2px;background:var(--clr-border);overflow:hidden;display:none;">
+            <div id="password-strength-bar" style="height:100%;width:0;transition:width 0.3s,background 0.3s;border-radius:2px;"></div>
+          </div>
+          <!-- Compact inline requirements -->
+          <div id="pw-requirements" style="display:none;margin-top:5px;font-size:11px;line-height:1.6;color:var(--clr-text-muted);">
+            <span id="req-label" style="font-weight:600;margin-right:4px;"></span><span id="req-inline"></span>
+          </div>
+          <span class="field-error-msg" id="error-password"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-password-confirm">Confirm Password</label>
+          <div style="position:relative;">
+            <input
+              type="password"
+              id="signup-password-confirm"
+              class="form-input"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              required
+            >
+            <button type="button" id="toggle-signup-confirm" aria-label="Toggle confirm password visibility"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--clr-text-muted);padding:2px 4px;font-size:16px;">👁</button>
+          </div>
+          <span class="field-error-msg" id="signup-confirm-error"></span>
+        </div>
+
+        <button type="submit" id="signup-btn" class="btn btn--primary btn--full">
+          <span class="spinner"></span>
+          <span class="btn-text">Create Account</span>
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="auth-divider">
+        <span>or</span>
+      </div>
+
+      <!-- Google Sign-In Button -->
+      <button type="button" id="google-signin-btn" class="btn btn--google btn--full">
+        <span class="spinner"></span>
+        <svg class="google-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        <span class="btn-text">Continue with Google</span>
+      </button>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgot-password-modal" class="modal--hidden" role="dialog" aria-labelledby="modal-title">
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 id="modal-title" class="modal__title">Reset Your Password</h2>
+          <button type="button" class="modal__close" aria-label="Close modal">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <!-- Step 1: Email Input -->
+        <div id="forgot-password-step-1" class="modal__step modal__step--active">
+          <p class="modal__description">Enter your email address and we'll send you a link to reset your password.</p>
+          
+          <form id="forgot-password-form" class="modal__form">
+            <div class="form-group">
+              <label for="forgot-email">Email Address</label>
+              <input
+                type="email"
+                id="forgot-email"
+                class="form-input"
+                placeholder="you@example.com"
+                autocomplete="email"
+                required
+              >
+              <span class="form-validation-error" id="forgot-email-error" role="alert"></span>
+            </div>
+
+            <button type="submit" id="forgot-password-submit" class="btn btn--primary btn--full">
+              <span class="spinner"></span>
+              <span class="btn-text">Send Reset Link</span>
+            </button>
+          </form>
+
+          <div class="modal__error" id="forgot-password-error" role="alert"></div>
+        </div>
+
+        <!-- Step 2: Success Message -->
+        <div id="forgot-password-step-2" class="modal__step">
+          <div class="modal__success">
+            <div class="modal__success-icon">✓</div>
+            <h3 class="modal__success-title">Check Your Email</h3>
+            <p class="modal__success-message">
+              We've sent a password reset link to <strong id="forgot-email-display"></strong>
+            </p>
+            <p class="modal__success-hint">
+              If you don't see the email in a few minutes, check your spam folder.
+            </p>
+          </div>
+
+          <div class="modal__button-group">
+            <button type="button" id="forgot-password-retry-btn" class="btn btn--primary btn--full">
+              Retry
+            </button>
+            <button type="button" id="forgot-password-close-btn" class="btn btn--ghost btn--full">
+              Back to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Privacy Policy Agreement Modal (MUST be outside main to be visible when main is hidden) -->
+  <div id="privacy-agreement-modal" class="modal--hidden" role="dialog" aria-labelledby="privacy-modal-title">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+      <div class="modal__header">
+        <h2 id="privacy-modal-title" class="modal__title">Privacy Policy & Data Agreement</h2>
+        <button type="button" class="modal__close" id="privacy-modal-close" aria-label="Close modal">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal__body" style="padding: 20px;">
+        <p><strong>Before you continue, please review our Privacy Policy:</strong></p>
+        <ul style="font-size: 13px; line-height: 1.6; margin: 15px 0;">
+          <li>✓ Your data is protected under RA 10173 (Data Privacy Act of 2012)</li>
+          <li>✓ You control your information and can request deletion anytime</li>
+          <li>✓ We only collect data necessary for scam detection</li>
+          <li>✓ Your scanned content is processed securely and not stored without consent</li>
+          <li>✓ We never sell or share your personal information</li>
+        </ul>
+        <p style="font-size: 12px; color: #666; margin-top: 20px;">
+          Read our full <a href="/privacy" target="_blank" rel="noopener noreferrer" style="color: #6C63FF;">Privacy Policy</a> for complete details.
+        </p>
+      </div>
+
+      <div class="modal__footer" style="padding: 20px; border-top: 1px solid #eee; display: flex; gap: 10px;">
+        <button type="button" id="privacy-decline-btn" class="btn btn--secondary btn--full">
+          Decline & Exit
+        </button>
+        <button type="button" id="privacy-agree-btn" class="btn btn--primary btn--full">
+          I Agree & Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script src="/static/js/auth.js"></script>
+</body>
+</html>

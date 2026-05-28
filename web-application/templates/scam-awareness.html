@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Suriin AI — Learn about common scam tactics and how to protect yourself online.">
+  <title>Suriin AI — Scam Awareness</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    if (sessionStorage.getItem('suriin_cached_uid')) {
+      document.documentElement.classList.add('suriin-cached');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard-wrapper" style="display:none;">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="dashboard-header">
+      <div class="header-brand">
+        <div class="header-brand__icon" aria-hidden="true">🛡️</div>
+        <span class="header-brand__name">Suriin AI</span>
+        <span class="header-brand__role" id="header-role-badge">User</span>
+      </div>
+      <div class="header-user">
+        <div class="header-user__meta">
+          <span class="header-user__email" id="user-email"></span>
+        </div>
+
+        <div class="header-user__actions">
+          <!-- ── Notification Bell ───────────────────────── -->
+          <div class="notification-bell" id="notification-bell-container">
+            <button class="notification-bell__btn" id="notification-bell-btn" aria-label="Notifications">
+              <span class="notification-bell__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#6C63FF;display:block;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </span>
+              <span class="notification-bell__badge" id="notification-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Notification Dropdown -->
+            <div class="notification-dropdown" id="notification-dropdown" style="display: none;">
+              <div class="notification-dropdown__header">
+                <h3>Notifications</h3>
+                <button class="notification-dropdown__mark-all" id="mark-all-read-btn" style="display: none;">
+                  Mark all as read
+                </button>
+              </div>
+
+              <div class="notification-dropdown__list" id="notification-list">
+                <!-- Notifications populated here by JavaScript -->
+              </div>
+
+              <div class="notification-dropdown__empty" id="notification-empty" style="display: none;">
+                <div class="notification-empty__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;opacity:0.5;display:block;">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </div>
+                <div class="notification-empty__text">No new notifications</div>
+              </div>
+            </div>
+          </div>
+          <!-- ── End Notification Bell ──────────────────────── -->
+
+          <!-- ── Avatar + Dropdown ──────────────────────── -->
+          <div class="avatar-menu" id="avatar-menu">
+            <div class="header-user__avatar" id="user-avatar" role="button" aria-haspopup="true" aria-expanded="false" title="Account menu"></div>
+            <div class="avatar-dropdown" id="avatar-dropdown" style="display:none;">
+              <div class="avatar-dropdown__user-info" id="avatar-dropdown-user-info"></div>
+              <div class="avatar-dropdown__divider"></div>
+              <a href="/settings" class="avatar-dropdown__item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+              </a>
+              <div class="avatar-dropdown__divider"></div>
+              <button class="avatar-dropdown__item avatar-dropdown__item--danger" id="avatar-logout-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Layout: Sidebar + Main ──────────────────────────────────────── -->
+    <div class="dashboard-layout">
+
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+          <a href="/user-dashboard" class="sidebar-link" id="nav-reports">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </span>
+            <span class="sidebar-link__text" id="nav-reports-text">My Reports</span>
+          </a>
+          <a href="/scam-awareness" class="sidebar-link sidebar-link--active" id="nav-awareness">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Scam Awareness</span>
+          </a>
+          <a href="/help" class="sidebar-link" id="nav-help">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <span class="sidebar-link__text">Help & Guide</span>
+          </a>
+          <div class="sidebar-divider"></div>
+          <a href="/settings" class="sidebar-link" id="nav-settings">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Settings</span>
+          </a>
+          <a href="/privacy" class="sidebar-link" id="nav-privacy">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <span class="sidebar-link__text">Privacy Policy</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- ── Main Content ────────────────────────────────────────────────── -->
+      <main class="page-content">
+        <h1>Scam Awareness</h1>
+        <p class="page-subtitle">Learn about common online scam tactics targeting Filipinos and how to protect yourself.</p>
+
+        <!-- ── Common Scam Tactics ──────────────────────────────────────── -->
+
+        <!-- 1. Phishing -->
+        <div class="content-card">
+          <div class="content-card__header">
+            <div class="content-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <h2 class="content-card__title">Phishing Scams</h2>
+          </div>
+          <div class="content-card__desc">
+            <p>
+              Phishing is the most common form of cyber fraud. Scammers send emails, text messages (smishing),
+              or social media messages impersonating legitimate organizations like banks, government agencies,
+              or popular services to trick you into revealing personal information.
+            </p>
+            <p>
+              They often create fake websites that look identical to real ones, urging you to "verify your account"
+              or "claim a prize." Once you enter your credentials, the scammer gains access to your accounts.
+            </p>
+            <div class="red-flags">
+              <span class="red-flag">🚩 Urgent "act now" language</span>
+              <span class="red-flag">🚩 Suspicious sender address</span>
+              <span class="red-flag">🚩 Misspelled URLs</span>
+              <span class="red-flag">🚩 Requests for passwords</span>
+              <span class="red-flag">🚩 Generic greetings</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Investment Scams -->
+        <div class="content-card">
+          <div class="content-card__header">
+            <div class="content-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <h2 class="content-card__title">Investment & Ponzi Scams</h2>
+          </div>
+          <div class="content-card__desc">
+            <p>
+              These scams promise unusually high returns with little or no risk. They often use social media
+              testimonials, fake screenshots of earnings, and pressure tactics to recruit new investors.
+              Common types include cryptocurrency scams, forex trading schemes, and pyramid/Ponzi structures.
+            </p>
+            <p>
+              In the Philippines, these scams frequently operate through Facebook groups and messaging apps,
+              often disguised as "investment cooperatives" or "trading academies."
+            </p>
+            <div class="red-flags">
+              <span class="red-flag">🚩 "Guaranteed" high returns</span>
+              <span class="red-flag">🚩 Pressure to recruit others</span>
+              <span class="red-flag">🚩 Unregistered with SEC</span>
+              <span class="red-flag">🚩 Vague business model</span>
+              <span class="red-flag">🚩 Difficulty withdrawing funds</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Romance Scams -->
+        <div class="content-card">
+          <div class="content-card__header">
+            <div class="content-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+            <h2 class="content-card__title">Romance Scams</h2>
+          </div>
+          <div class="content-card__desc">
+            <p>
+              Scammers create fake profiles on dating sites and social media platforms to build emotional
+              relationships with victims. Over weeks or months, they develop trust before fabricating
+              emergencies — medical bills, travel expenses, or business troubles — to request money.
+            </p>
+            <p>
+              These scams are particularly harmful because victims often feel ashamed and don't report them.
+              The emotional manipulation makes it difficult to recognize the scam even when warned.
+            </p>
+            <div class="red-flags">
+              <span class="red-flag">🚩 Refuses video calls</span>
+              <span class="red-flag">🚩 Claims to be overseas</span>
+              <span class="red-flag">🚩 Financial emergencies</span>
+              <span class="red-flag">🚩 Too-perfect profile</span>
+              <span class="red-flag">🚩 Asks for gift cards/crypto</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Job Scams -->
+        <div class="content-card">
+          <div class="content-card__header">
+            <div class="content-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            </div>
+            <h2 class="content-card__title">Job & Recruitment Scams</h2>
+          </div>
+          <div class="content-card__desc">
+            <p>
+              Fake job postings promise high-paying work-from-home positions with minimal qualifications.
+              Victims may be asked to pay "processing fees," purchase equipment, or provide sensitive
+              personal information like IDs and bank details during a fake onboarding process.
+            </p>
+            <p>
+              Some sophisticated variants involve fake "task-based" jobs where victims are asked to
+              complete simple online tasks for small payments, then pressured into depositing larger amounts
+              to "unlock higher-paying" tasks.
+            </p>
+            <div class="red-flags">
+              <span class="red-flag">🚩 Upfront payment required</span>
+              <span class="red-flag">🚩 Unrealistic salary offers</span>
+              <span class="red-flag">🚩 No real company website</span>
+              <span class="red-flag">🚩 Vague job descriptions</span>
+              <span class="red-flag">🚩 Contact via Telegram only</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Tech Support Scams -->
+        <div class="content-card">
+          <div class="content-card__header">
+            <div class="content-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h2 class="content-card__title">Tech Support Scams</h2>
+          </div>
+          <div class="content-card__desc">
+            <p>
+              Scammers pose as technical support from well-known companies (Microsoft, Apple, Google)
+              claiming your device is infected with a virus or has been compromised. They use pop-up
+              warnings, phone calls, or emails to create urgency.
+            </p>
+            <p>
+              Victims are tricked into granting remote access to their computers, where scammers install
+              malware, steal data, or charge for unnecessary "repair" services.
+            </p>
+            <div class="red-flags">
+              <span class="red-flag">🚩 Unsolicited calls</span>
+              <span class="red-flag">🚩 Pop-up virus warnings</span>
+              <span class="red-flag">🚩 Requests remote access</span>
+              <span class="red-flag">🚩 Payment via gift cards</span>
+              <span class="red-flag">🚩 Creates false urgency</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Official Advisories & Resources ──────────────────────────── -->
+        <h2 style="margin-top: var(--space-2xl); margin-bottom: var(--space-lg); font-size: var(--font-lg);">
+          Official Advisory Resources
+        </h2>
+        <p style="color: var(--clr-text-secondary); font-size: var(--font-sm); margin-bottom: var(--space-xl);">
+          Stay informed. These are the official Philippine government agencies handling cybercrime and fraud.
+        </p>
+
+        <div class="ext-links">
+          <a href="https://www.sec.gov.ph/investor-alert/" target="_blank" rel="noopener noreferrer" class="ext-link">
+            <span class="ext-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+            <div class="ext-link__info">
+              <span class="ext-link__name">SEC Philippines — Investor Alerts</span>
+              <span class="ext-link__url">sec.gov.ph/investor-alert</span>
+            </div>
+          </a>
+
+          <a href="https://cicc.gov.ph/" target="_blank" rel="noopener noreferrer" class="ext-link">
+            <span class="ext-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <div class="ext-link__info">
+              <span class="ext-link__name">CICC — Cybercrime Investigation Center</span>
+              <span class="ext-link__url">cicc.gov.ph</span>
+            </div>
+          </a>
+
+          <a href="https://nbi.gov.ph/" target="_blank" rel="noopener noreferrer" class="ext-link">
+            <span class="ext-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <div class="ext-link__info">
+              <span class="ext-link__name">NBI — Cybercrime Division</span>
+              <span class="ext-link__url">nbi.gov.ph</span>
+            </div>
+          </a>
+
+          <a href="https://acg.pnp.gov.ph/" target="_blank" rel="noopener noreferrer" class="ext-link">
+            <span class="ext-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <div class="ext-link__info">
+              <span class="ext-link__name">PNP Anti-Cybercrime Group</span>
+              <span class="ext-link__url">acg.pnp.gov.ph</span>
+            </div>
+          </a>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notification-bell.js"></script>
+</body>
+</html>

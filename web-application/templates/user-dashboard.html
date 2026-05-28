@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Suriin AI — View your submitted scam detection reports.">
+  <title>Suriin AI — My Reports</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    if (sessionStorage.getItem('suriin_cached_uid')) {
+      document.documentElement.classList.add('suriin-cached');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard-wrapper" style="display:none;">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="dashboard-header">
+      <div class="header-brand">
+        <div class="header-brand__icon" aria-hidden="true">🛡️</div>
+        <span class="header-brand__name">Suriin AI</span>
+        <span class="header-brand__role">User</span>
+      </div>
+      <div class="header-user">
+        <div class="header-user__meta">
+          <span class="header-user__email" id="user-email"></span>
+        </div>
+
+        <div class="header-user__actions">
+          <!-- ── Notification Bell ──────────────────────────────── -->
+          <div class="notification-bell" id="notification-bell-container">
+            <button class="notification-bell__btn" id="notification-bell-btn" aria-label="Notifications">
+              <span class="notification-bell__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#6C63FF;display:block;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </span>
+              <span class="notification-bell__badge" id="notification-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Notification Dropdown -->
+            <div class="notification-dropdown" id="notification-dropdown" style="display: none;">
+              <div class="notification-dropdown__header">
+                <h3>Notifications</h3>
+                <button class="notification-dropdown__mark-all" id="mark-all-read-btn" style="display: none;">
+                  Mark all as read
+                </button>
+              </div>
+
+              <div class="notification-dropdown__list" id="notification-list">
+                <!-- Notifications populated here by JavaScript -->
+              </div>
+
+              <div class="notification-dropdown__empty" id="notification-empty" style="display: none;">
+                <div class="notification-empty__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;opacity:0.5;display:block;">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </div>
+                <div class="notification-empty__text">No new notifications</div>
+              </div>
+            </div>
+          </div>
+          <!-- ── End Notification Bell ──────────────────────────── -->
+
+          <!-- ── Avatar + Dropdown ──────────────────────── -->
+          <div class="avatar-menu" id="avatar-menu">
+            <div class="header-user__avatar" id="user-avatar" role="button" aria-haspopup="true" aria-expanded="false" title="Account menu"></div>
+            <div class="avatar-dropdown" id="avatar-dropdown" style="display:none;">
+              <div class="avatar-dropdown__user-info" id="avatar-dropdown-user-info"></div>
+              <div class="avatar-dropdown__divider"></div>
+              <a href="/settings" class="avatar-dropdown__item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+              </a>
+              <div class="avatar-dropdown__divider"></div>
+              <button class="avatar-dropdown__item avatar-dropdown__item--danger" id="avatar-logout-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Layout: Sidebar + Main ──────────────────────────────────────── -->
+    <div class="dashboard-layout">
+
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+          <a href="/user-dashboard" class="sidebar-link sidebar-link--active" id="nav-reports">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </span>
+            <span class="sidebar-link__text">My Reports</span>
+          </a>
+          <a href="/scam-awareness" class="sidebar-link" id="nav-awareness">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Scam Awareness</span>
+          </a>
+          <a href="/help" class="sidebar-link" id="nav-help">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <span class="sidebar-link__text">Help & Guide</span>
+          </a>
+
+          <div class="sidebar-divider"></div>
+
+          <a href="/settings" class="sidebar-link" id="nav-settings">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Settings</span>
+          </a>
+          <a href="/privacy" class="sidebar-link" id="nav-privacy">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <span class="sidebar-link__text">Privacy Policy</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- ── Main Content ────────────────────────────────────────────────── -->
+      <main class="dashboard-main">
+
+        <h1 class="dashboard-title">My Reports</h1>
+        <p class="dashboard-subtitle">Reports submitted from your Suriin AI Scanner extension</p>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card__label is-skeleton">Total Reports</div>
+            <div class="stat-card__value is-skeleton" id="stat-total">0</div>
+          </div>
+          <div class="stat-card stat-card--warning">
+            <div class="stat-card__label is-skeleton">Under Review</div>
+            <div class="stat-card__value is-skeleton" id="stat-under-review">0</div>
+          </div>
+          <div class="stat-card stat-card--critical">
+            <div class="stat-card__label is-skeleton">Confirmed Scams</div>
+            <div class="stat-card__value is-skeleton" id="stat-confirmed">0</div>
+          </div>
+          <div class="stat-card stat-card--safe">
+            <div class="stat-card__label is-skeleton">Verified Safe</div>
+            <div class="stat-card__value is-skeleton" id="stat-verified-safe">0</div>
+          </div>
+        </div>
+
+        <!-- Reports Table -->
+        <section class="reports-section">
+          <div class="reports-header">
+            <h2 class="reports-header__title">Report History</h2>
+            <span class="reports-header__count" id="report-count"></span>
+          </div>
+
+          <!-- Tab bar -->
+          <div class="triage-tabs" style="display:flex; gap:var(--space-sm); border-bottom:1px solid var(--clr-border); margin-bottom:0;">
+            <button class="tab-btn active" id="tab-active" style="background:none; border:none; border-bottom:2px solid var(--clr-accent); color:var(--clr-accent); padding:var(--space-sm) var(--space-md); font-size:var(--font-sm); font-weight:500; cursor:pointer;">Active Reports</button>
+            <button class="tab-btn" id="tab-resolved" style="background:none; border:none; border-bottom:2px solid transparent; color:var(--clr-text-secondary); padding:var(--space-sm) var(--space-md); font-size:var(--font-sm); font-weight:500; cursor:pointer;">Resolved History</button>
+          </div>
+
+          <!-- Filter bar: Active tab -->
+          <div class="dashboard-filter-bar" id="user-filter-bar-active" style="padding:var(--space-sm) var(--space-md);">
+            <select id="filter-status" class="dashboard-filter-select">
+              <option value="all">All Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Investigating">Investigating</option>
+            </select>
+          </div>
+
+          <!-- Filter bar: Resolved tab -->
+          <div class="dashboard-filter-bar" id="user-filter-bar-resolved" style="display:none; padding:var(--space-sm) var(--space-md);">
+            <select id="filter-verdict" class="dashboard-filter-select">
+              <option value="all">All Verdicts</option>
+              <option value="safe">Verified Safe</option>
+              <option value="threat">Confirmed Threat</option>
+            </select>
+          </div>
+          <div style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+            <table class="reports-table" id="reports-table" style="table-layout: fixed; width: 100%;">
+              <thead>
+                <tr>
+                  <th style="width: 15%; min-width: 100px;">Date</th>
+                  <th style="width: 15%; min-width: 120px;">Platform</th>
+                  <th style="width: 15%; min-width: 100px;">Risk Score</th>
+                  <th style="width: 15%; min-width: 130px;">Expert Verdict</th>
+                  <th style="width: 15%; min-width: 130px;">Status</th>
+                  <th style="width: 15%; min-width: 140px; padding-right:1.75rem;">AI Score</th>
+                </tr>
+              </thead>
+              <tbody id="reports-tbody">
+                <!-- Skeleton rows shown until Firestore snapshot arrives -->
+                <tr class="skeleton-row"><td colspan="6"><div class="skeleton-cell"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="6"><div class="skeleton-cell"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="6"><div class="skeleton-cell"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-footer" id="user-pagination" style="display: none; justify-content: center; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--clr-border);">
+            <button class="btn btn--ghost btn--sm" id="user-pagination-prev" style="display: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="m15 18-6-6 6-6"/></svg>
+              Previous
+            </button>
+            <div id="user-pagination-numbers" style="display: flex; gap: 4px; align-items: center;"></div>
+            <button class="btn btn--ghost btn--sm" id="user-pagination-next" style="display: none;">
+              Next
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+
+          <!-- Empty state -->
+          <div class="empty-state" id="empty-state" style="display:none;">
+            <div class="empty-state__icon">📭</div>
+            <div class="empty-state__title">No reports submitted yet</div>
+            <p class="empty-state__desc">
+              You haven't submitted any scam reports yet. Install the
+              <strong>Suriin AI Chrome Extension</strong> and browse normally —
+              it will automatically detect and submit suspicious content for analysis.
+            </p>
+            <a href="/help" class="btn btn--primary btn--sm" style="margin-top: var(--space-lg);">
+              <span class="btn-text">Learn How to Get Started</span>
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       REPORT DETAILS MODAL
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="report-modal-overlay" style="display:none;">
+    <div class="modal" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h2 class="modal-header__title" id="modal-title">Report Details</h2>
+        <button class="modal-close" id="modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <!-- Compact info bar: Date / Status / Expert Verdict (values only) -->
+      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-md); padding: var(--space-sm) var(--space-lg); border-bottom: 1px solid var(--clr-border); background: var(--clr-surface-alt, var(--clr-surface));">
+        <span style="font-size:var(--font-sm); color:var(--clr-text-muted);" id="modal-date">—</span>
+        <span id="modal-status">—</span>
+        <span id="modal-expert-verdict-header">—</span>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Discovery Context -->
+        <div class="modal-section" id="modal-discovery-section">
+          <h3 class="modal-section__title">Discovery Context</h3>
+          <div class="modal-meta" style="gap: var(--space-lg);">
+            <div class="modal-meta__item">
+              <span class="modal-meta__label">Platform</span>
+              <span class="modal-meta__value" id="modal-discovery-platform">—</span>
+            </div>
+            <div class="modal-meta__item">
+              <span class="modal-meta__label">Source Identifier</span>
+              <span class="modal-meta__value" id="modal-source-identifier">—</span>
+            </div>
+          </div>
+          <div id="modal-user-context-container">
+            <span class="modal-meta__label" style="display:block; margin-bottom:var(--space-xs);">User Context</span>
+            <div class="modal-extracted-text" id="modal-user-context">
+              <p class="text-muted">No user context provided.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Risk Score Breakdown -->
+        <div class="modal-section modal-section--ai">
+          <h3 class="modal-section__title">Risk Score Breakdown</h3>
+          <div class="risk-breakdown" id="modal-risk-breakdown">
+            <div class="risk-breakdown__score">
+              <div class="risk-breakdown__circle" id="modal-risk-circle">
+                <span class="risk-breakdown__number" id="modal-risk-number">0%</span>
+              </div>
+              <span class="risk-breakdown__level" id="modal-risk-level">Safe</span>
+            </div>
+            <div class="risk-breakdown__bar-wrapper">
+              <div class="risk-breakdown__bar">
+                <div class="risk-breakdown__bar-fill" id="modal-risk-bar-fill"></div>
+              </div>
+              <div class="risk-breakdown__legend">
+                <span class="risk-legend risk-legend--safe">0–39% Safe</span>
+                <span class="risk-legend risk-legend--warning">40–84% Warning</span>
+                <span class="risk-legend risk-legend--critical">85–100% Critical</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Score -->
+        <div class="modal-section modal-section--ai" style="padding-top: var(--space-sm); padding-bottom: var(--space-sm);">
+          <div style="display:flex; align-items:center; gap: var(--space-md);">
+            <span style="font-size:var(--font-xs); color:var(--clr-text-muted); text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap;">AI Score</span>
+            <span id="modal-ai-confidence" style="font-size:var(--font-sm); font-weight:600;">—</span>
+          </div>
+        </div>
+
+        <!-- Risk Factors -->
+        <div class="modal-section modal-section--ai">
+          <h3 class="modal-section__title">Risk Factors</h3>
+          <div class="modal-risk-factors" id="modal-risk-factors">
+            <p class="text-muted">No risk factors available.</p>
+          </div>
+        </div>
+
+        <!-- Extracted Text -->
+        <div class="modal-section">
+          <h3 class="modal-section__title">Extracted Scam Text</h3>
+          <div class="modal-extracted-text" id="modal-extracted-text">
+            <p class="text-muted">No extracted text available.</p>
+          </div>
+        </div>
+
+        <!-- Forensic Review (Dynamic) -->
+        <div class="modal-section modal-section--human" id="modal-expert-review-section" style="display:none; margin-top: var(--space-lg); border-top: 1px solid var(--clr-border); padding-top: var(--space-lg);">
+          <h3 class="modal-section__title">Forensic Review</h3>
+          <div class="modal-meta" style="margin-bottom: var(--space-md);">
+            <div class="modal-meta__item">
+              <span class="modal-meta__label">Expert Verdict</span>
+              <span class="modal-meta__value" id="modal-expert-verdict-badge">—</span>
+            </div>
+            <div class="modal-meta__item" id="modal-assigned-to-item" style="display:none;">
+              <span class="modal-meta__label">Assigned To</span>
+              <span class="modal-meta__value" id="modal-assigned-to">—</span>
+            </div>
+          </div>
+          <div id="modal-safe-alert" class="alert alert--success" style="display:none; margin-bottom: var(--space-md);">
+            Investigation Complete: This platform has been verified as safe by our forensic team.
+          </div>
+          <div id="modal-safety-justification-wrapper" style="display:none; margin-bottom: var(--space-md);">
+            <span class="modal-meta__label" style="display:block; margin-bottom:var(--space-xs);">Safety Justification</span>
+            <div class="modal-extracted-text" id="modal-safety-justification">
+              <p class="text-muted">No justification provided.</p>
+            </div>
+          </div>
+          <div>
+            <span id="modal-expert-notes-label" class="modal-meta__label" style="display:block; margin-bottom:var(--space-xs);">Reasoning &amp; Analysis</span>
+            <div class="modal-extracted-text" id="modal-expert-notes">
+              <p class="text-muted">No notes available.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actionable Intelligence / Dismissal Rationale (Dynamic) -->
+        <div class="modal-section modal-section--human" id="modal-actionable-section" style="display:none;">
+          <h3 class="modal-section__title" id="modal-actionable-title">Actionable Intelligence</h3>
+          <div class="modal-extracted-text" id="modal-actionable-content">
+            <p class="text-muted">No recommendations available.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- jsPDF for PDF evidence download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notification-bell.js"></script>
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

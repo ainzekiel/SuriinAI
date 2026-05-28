@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Suriin AI — Full Privacy Policy and Data Agreement.">
+  <title>Suriin AI — Privacy Policy</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    if (sessionStorage.getItem('suriin_cached_uid')) {
+      document.documentElement.classList.add('suriin-cached');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Loading overlay (matches all dashboard pages) -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       LOGGED-IN LAYOUT: Full dashboard shell (sidebar + navbar)
+       Hidden by default; revealed by JS when auth confirms user exists
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="dashboard" id="dashboard-wrapper" style="display:none;">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="dashboard-header">
+      <div class="header-brand">
+        <div class="header-brand__icon" aria-hidden="true">🛡️</div>
+        <span class="header-brand__name">Suriin AI</span>
+        <span class="header-brand__role">User</span>
+      </div>
+      <div class="header-user">
+        <div class="header-user__meta">
+          <span class="header-user__email" id="user-email"></span>
+        </div>
+
+        <div class="header-user__actions">
+          <!-- ── Notification Bell ───────────────────────── -->
+          <div class="notification-bell" id="notification-bell-container">
+            <button class="notification-bell__btn" id="notification-bell-btn" aria-label="Notifications">
+              <span class="notification-bell__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#6C63FF;display:block;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </span>
+              <span class="notification-bell__badge" id="notification-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Notification Dropdown -->
+            <div class="notification-dropdown" id="notification-dropdown" style="display: none;">
+              <div class="notification-dropdown__header">
+                <h3>Notifications</h3>
+                <button class="notification-dropdown__mark-all" id="mark-all-read-btn" style="display: none;">
+                  Mark all as read
+                </button>
+              </div>
+
+              <div class="notification-dropdown__list" id="notification-list">
+                <!-- Notifications populated here by JavaScript -->
+              </div>
+
+              <div class="notification-dropdown__empty" id="notification-empty" style="display: none;">
+                <div class="notification-empty__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;opacity:0.5;display:block;">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </div>
+                <div class="notification-empty__text">No new notifications</div>
+              </div>
+            </div>
+          </div>
+          <!-- ── End Notification Bell ──────────────────────── -->
+
+          <!-- ── Avatar + Dropdown ──────────────────────── -->
+          <div class="avatar-menu" id="avatar-menu">
+            <div class="header-user__avatar" id="user-avatar" role="button" aria-haspopup="true" aria-expanded="false" title="Account menu"></div>
+            <div class="avatar-dropdown" id="avatar-dropdown" style="display:none;">
+              <div class="avatar-dropdown__user-info" id="avatar-dropdown-user-info"></div>
+              <div class="avatar-dropdown__divider"></div>
+              <a href="/settings" class="avatar-dropdown__item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+              </a>
+              <div class="avatar-dropdown__divider"></div>
+              <button class="avatar-dropdown__item avatar-dropdown__item--danger" id="avatar-logout-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Layout: Sidebar + Main ──────────────────────────────────────── -->
+    <div class="dashboard-layout">
+
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+          <a href="/user-dashboard" class="sidebar-link" id="nav-reports">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </span>
+            <span class="sidebar-link__text">My Reports</span>
+          </a>
+          <a href="/scam-awareness" class="sidebar-link" id="nav-awareness">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Scam Awareness</span>
+          </a>
+          <a href="/help" class="sidebar-link" id="nav-help">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <span class="sidebar-link__text">Help & Guide</span>
+          </a>
+
+          <div class="sidebar-divider"></div>
+
+          <a href="/settings" class="sidebar-link" id="nav-settings">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Settings</span>
+          </a>
+          <a href="/privacy" class="sidebar-link sidebar-link--active" id="nav-privacy">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <span class="sidebar-link__text">Privacy Policy</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- ── Main Content ────────────────────────────────────────────────── -->
+      <main class="dashboard-main">
+        <h1 class="dashboard-title">Privacy Policy</h1>
+        <p class="dashboard-subtitle">How Suriin AI collects, uses, and protects your data</p>
+
+        {% include 'partials/privacy-content.html' %}
+      </main>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       LOGGED-OUT LAYOUT: Standalone minimal view
+       Shown by default; hidden once auth confirms user exists
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="standalone-wrapper" style="display:none;">
+    <main class="privacy-standalone">
+      <header class="privacy-standalone-header">
+        <div class="privacy-brand">
+          <span class="privacy-brand-icon" aria-hidden="true">🛡️</span>
+          <span class="privacy-brand-text">Suriin AI</span>
+        </div>
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm privacy-back-btn"
+          onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '/'; }"
+        >
+          ← Back
+        </button>
+      </header>
+
+      {% include 'partials/privacy-content.html' %}
+    </main>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notification-bell.js"></script>
+
+  <script>
+    (function () {
+      const loadingOverlay   = document.getElementById('loading-overlay');
+      const dashboardWrapper = document.getElementById('dashboard-wrapper');
+      const standaloneWrapper = document.getElementById('standalone-wrapper');
+
+      function showDashboard() {
+        standaloneWrapper.style.display = 'none';
+        dashboardWrapper.style.display  = '';
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+      }
+
+      function showStandalone() {
+        dashboardWrapper.style.display   = 'none';
+        standaloneWrapper.style.display  = '';
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+      }
+
+      // Listen for auth.js broadcasting auth state (dispatched on window)
+      window.addEventListener('suriin:auth-ready', function (e) {
+        const user = e.detail && e.detail.user;
+        if (user) {
+          showDashboard();
+        } else {
+          showStandalone();
+        }
+      });
+
+      // Fallback: if auth.js already fired before this listener attached
+      if (window.__suriinAuthReady) {
+        const user = window.__suriinAuthData && window.__suriinAuthData.user;
+        if (user) {
+          showDashboard();
+        } else {
+          showStandalone();
+        }
+      }
+    })();
+  </script>
+
+</body>
+</html>

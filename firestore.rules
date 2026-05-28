@@ -1,0 +1,183 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ── HELPER FUNCTIONS ──────────────────────────────────────────────────────
+    
+    /**
+     * Check if user is authenticated
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Check if the request is from the authenticated user
+     */
+    function isUserOwnDoc(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * Check if the user is an expert by looking up their Users document
+     */
+    function isExpert() {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/Users/$(request.auth.uid)).data.role == 'expert';
+    }
+
+    /**
+     * Check if the user is an admin by looking up their Users document
+     */
+    function isAdmin() {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/Users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    /**
+     * Validate report creation fields
+     */
+    function isValidReport(data) {
+      return data.keys().hasAll(['user_id', 'url', 'risk_score', 'status', 'created_at'])
+        && data.risk_score >= 0 && data.risk_score <= 1
+        && data.status in ['pending', 'reviewing', 'confirmed', 'dismissed', 'Pending', 'Under Investigation', 'Resolved', 'Dismissed'];
+    }
+
+    /**
+     * Validate notification fields
+     */
+    function isValidNotification(data) {
+      return data.keys().hasAll(['user_id', 'type', 'message', 'created_at', 'isRead'])
+        && data.type in ['report_update', 'new_report', 'system', 'report_resolved',
+                         'expert-case-update', 'remediation_plan', 'status_update'];
+    }
+
+    // ── USERS COLLECTION ──────────────────────────────────────────────────────
+    match /Users/{userId} {
+      // Users can read and write their own documents (including nested preferences)
+      allow read, write: if isSignedIn() && isUserOwnDoc(userId);
+      
+      // Experts can read any user document (for triage purposes)
+      // and write their own document (for preferences like email_new_assignments)
+      allow read: if isExpert();
+      allow write: if isExpert() && isUserOwnDoc(userId);
+      
+      // Admins can read and update any user document (for user management)
+      allow read, write: if isAdmin();
+    }
+
+    // ── REPORTS COLLECTION ────────────────────────────────────────────────────
+    // Users can create/read their own reports
+    // Experts can read all reports and update status
+    // Admins can read all reports for analytics and operations
+    match /Reports/{reportId} {
+      // General users: get a single report they own
+      allow get: if isSignedIn() && isUserOwnDoc(resource.data.user_id);
+      
+      // General users: list their own reports (resource.data unavailable for list;
+      // the client-side query uses where('user_id','==',uid) to scope results)
+      allow list: if isSignedIn();
+      
+      // General users: update/delete their own reports
+      allow update, delete: if isSignedIn() && isUserOwnDoc(resource.data.user_id);
+      
+      // Experts: read all reports and update status + review fields
+      // (expertNotes, remediationPlan, reviewedBy, reviewedByEmail, reviewedAt)
+      // Fallback: assigned expert can update without cross-document get() (safe inside transactions)
+      allow read: if isExpert();
+      allow update: if isExpert() || (isSignedIn() && resource.data.assigned_to == request.auth.uid);
+      
+      // Admins: read all reports for analytics and operations
+      allow read: if isAdmin();
+      
+      // Creation: users can create their own reports
+      allow create: if isSignedIn() 
+                       && request.resource.data.user_id == request.auth.uid
+                       && isValidReport(request.resource.data);
+    }
+
+    // ── USER NOTIFICATIONS COLLECTION ───────────────────────────────────────────
+    // 1-to-1 notifications for specific users (report updates, resolutions)
+    match /user_notifications/{notifId} {
+      // list: allow any signed-in user (client already filters where user_id == uid)
+      allow list: if isSignedIn();
+      // get: only the owning user (resource.data allowed on single-doc reads)
+      allow get: if isSignedIn() && isUserOwnDoc(resource.data.user_id);
+      
+      // Experts/Admins can create notifications for users
+      allow create: if (isExpert() || isAdmin())
+                       && request.resource.data.keys().hasAll(['user_id', 'type', 'message', 'created_at', 'isRead']);
+      
+      // Users can update their own notifications (mark as read)
+      allow update: if isSignedIn() && isUserOwnDoc(resource.data.user_id);
+      
+      // No deletes
+      allow delete: if false;
+    }
+
+    // ── STAFF NOTIFICATIONS COLLECTION ─────────────────────────────────────────
+    // Broadcast notifications for staff roles (new reports, system alerts)
+    match /staff_notifications/{notifId} {
+      // list: role-only check — client where clause already scopes by targetRole
+      allow list: if isAdmin();
+      allow list: if isExpert();
+      // get: verify targetRole on single-doc reads (resource.data safe here)
+      allow get: if isAdmin() && resource.data.targetRole == 'admin';
+      allow get: if isExpert() && resource.data.targetRole == 'expert';
+      
+      // Admins can create staff notifications for any role
+      allow create: if isAdmin()
+                       && request.resource.data.keys().hasAll(['targetRole', 'type', 'message', 'created_at', 'isRead'])
+                       && request.resource.data.targetRole in ['admin', 'expert'];
+      
+      // Admins can update any staff notification (mark as read)
+      allow update: if isAdmin();
+      
+      // Experts can update staff notifications targeting experts (mark as read)
+      allow update: if isExpert() && resource.data.targetRole == 'expert';
+      
+      // No deletes
+      allow delete: if false;
+    }
+
+    // ── LEGACY NOTIFICATIONS COLLECTION (Read-only) ────────────────────────────
+    // Keeping for backward compatibility - no new writes
+    match /Notifications/{notifId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ── SETTINGS COLLECTION ──────────────────────────────────────────────────
+    match /Settings/{userId} {
+      // Users can read/write their own settings
+      allow read, write: if isSignedIn() && isUserOwnDoc(userId);
+    }
+
+    // ── SYSTEM CONFIG COLLECTION ────────────────────────────────────────────────
+    // Global platform configuration - Admin read/write only
+    match /system_config/{docId} {
+      // Only admins can read and write system configuration
+      allow read, write: if isAdmin();
+    }
+
+    // ── AUDIT LOGS COLLECTION ─────────────────────────────────────────────────
+    // Immutable log of system-altering actions by admins and experts
+    match /audit_logs/{logId} {
+      // Admins can read all audit logs (for audit log viewer)
+      allow read: if isAdmin();
+      
+      // Any authenticated user (admin/expert) can create audit logs for their own actions
+      allow create: if isSignedIn() 
+                       && request.resource.data.actorId == request.auth.uid
+                       && request.resource.data.keys().hasAll(['timestamp', 'actorId', 'actorEmail', 'actorRole', 'action', 'targetId', 'targetType', 'details']);
+      
+      // Audit logs are immutable - no updates or deletes allowed
+      allow update, delete: if false;
+    }
+
+    // ── DEFAULT: DENY ALL ────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

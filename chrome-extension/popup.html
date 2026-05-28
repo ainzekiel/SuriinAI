@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Suriin AI Scanner</title>
+  <!-- All styling is in a separate CSS file to comply with Manifest V3 CSP -->
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- Boot loader: visible immediately, hidden by JS once boot completes -->
+  <div id="boot-loader" class="boot-loader">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- ============================================================
+       AUTH STATE: UNAUTHENTICATED / LOCKED
+       Shown when user hasn't logged in to the web app.
+       Redirects to the login page to authenticate.
+  ============================================================ -->
+  <div id="auth-state" class="view hidden">
+
+    <!-- ── Hero: shield + lock badge ── -->
+    <div class="auth-hero">
+      <div class="auth-shield-wrap">
+        <div class="shield-icon">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 4L8 14V32C8 46.4 18.4 59.6 32 62C45.6 59.6 56 46.4 56 32V14L32 4Z" fill="url(#shieldGrad)"/>
+            <path d="M22 32L29 39L42 26" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="shieldGrad" x1="8" y1="4" x2="56" y2="62" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#6C63FF"/>
+                <stop offset="1" stop-color="#3ECFCF"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <!-- Lock badge overlay -->
+        <div class="auth-lock-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="auth-hero-text">
+        <h1 class="auth-title">Suriin <span class="gradient-text">AI</span></h1>
+        <span class="auth-status-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="10" height="10"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Protection Locked
+        </span>
+      </div>
+    </div>
+
+    <!-- ── Scrollable Privacy Policy card ── -->
+    <div class="auth-privacy-card">
+      <div class="auth-privacy-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Privacy Policy &amp; Data Agreement
+      </div>
+
+      <div class="auth-privacy-scroll">
+
+        <div class="auth-privacy-section">
+          <h3>1. Introduction</h3>
+          <p>Welcome to Suriin AI. We protect your personal information in compliance with the Republic Act No. 10173 (Data Privacy Act of 2012).</p>
+        </div>
+
+        <div class="auth-privacy-section">
+          <h3>2. Information We Collect</h3>
+          <p><strong>Account Information:</strong> Name, email, and encrypted passwords for authentication.</p>
+          <p><strong>Scanned Content:</strong> Text, links, or messages you submit or the extension scans via your selected mode (Auto, Manual, or Highlight).</p>
+          <p class="auth-privacy-note">Suriin AI does <strong>not</strong> secretly read or log your private conversations. Data is only processed when the extension is active.</p>
+        </div>
+
+        <div class="auth-privacy-section">
+          <h3>3. How We Use Your Information</h3>
+          <p>To analyze text and URLs using our AI model for scam risk scores, route high-risk reports to verified Cybersecurity Experts, and display your scan history on your dashboard.</p>
+        </div>
+
+        <div class="auth-privacy-section">
+          <h3>4. Data Security &amp; Storage</h3>
+          <p>All data is transmitted securely and stored using Google Firebase. Only authorized Experts can view flagged reports — they cannot see your passwords.</p>
+        </div>
+
+        <div class="auth-privacy-section">
+          <h3>5. Your Rights (RA 10173)</h3>
+          <p><strong>Be Informed</strong> — Know exactly how your data is used.</p>
+          <p><strong>Access &amp; Correct</strong> — View your reports and update your profile.</p>
+          <p><strong>Erase</strong> — Request full deletion of your account and scan data via Settings.</p>
+        </div>
+
+        <div class="auth-privacy-section">
+          <h3>6. Contact Us</h3>
+          <p>Questions? Contact the Suriin AI Capstone Development Team via the web app.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── CTA ── -->
+    <div class="auth-cta">
+      <button id="btn-go-to-login" class="btn btn-primary btn-full">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Log In to Activate Protection
+      </button>
+      <p class="auth-footer">By logging in, you agree to our <a href="http://127.0.0.1:5000/privacy" target="_blank">Privacy Policy</a> and consent to data processing under RA 10173.</p>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================
+       MAIN STATE: AUTHENTICATED
+       The primary interaction screen shown after user logs in.
+       Only visible when isAuthenticated is true.
+  ============================================================ -->
+  <div id="main-state" class="view hidden">
+
+    <header class="header">
+      <div class="header-brand">
+        <!-- Inline mini shield SVG -->
+        <svg class="header-shield" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 4L8 14V32C8 46.4 18.4 59.6 32 62C45.6 59.6 56 46.4 56 32V14L32 4Z" fill="url(#shieldGradHdr)"/>
+          <path d="M22 32L29 39L42 26" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="shieldGradHdr" x1="8" y1="4" x2="56" y2="62" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6C63FF"/>
+              <stop offset="1" stop-color="#3ECFCF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="header-title">Suriin AI</span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-notif-bell" class="btn-icon-only notif-bell" title="Notifications" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span id="notif-badge" class="notif-badge hidden">0</span>
+        </button>
+        <button id="btn-open-settings" class="btn-icon-only" title="Settings" aria-label="Open Settings">
+        <!-- Gear / Settings SVG icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      </div>
+    </header>
+
+    <!-- Guest mode banner (hidden when authenticated) -->
+    <div id="guest-mode-banner" class="guest-banner hidden">
+      <div class="guest-banner-content">
+        <span class="guest-banner-icon">👤</span>
+        <span class="guest-banner-text">Guest Mode</span>
+      </div>
+      <button id="btn-guest-login" class="guest-banner-btn">Log in for full access →</button>
+    </div>
+
+    <!-- Status pill showing current mode -->
+    <div class="mode-status-bar">
+      <span class="mode-dot" id="mode-dot"></span>
+      <span id="mode-label">Mode: Highlight Only</span>
+    </div>
+
+    <!-- Scan area illustration -->
+    <div class="scanner-visual">
+      <div class="scan-ring outer"></div>
+      <div class="scan-ring middle"></div>
+      <div class="scan-ring inner"></div>
+      <div class="scanner-icon-center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 9H4v5M15 9h5v5M9 15H4v-5M15 15h5v-5"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Dynamic instruction text changes based on mode -->
+    <p class="main-instruction" id="main-instruction">
+      Highlight suspicious text on the page, then click Scan.
+    </p>
+
+    <!-- Dynamic primary action button (hidden in Auto mode) -->
+    <button id="btn-scan" class="btn btn-primary btn-full btn-scan-glow">
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span id="btn-scan-label">Scan Highlighted Text</span>
+    </button>
+
+    <!-- Auto-scan active banner (shown only in Auto mode) -->
+    <div id="auto-active-banner" class="auto-banner hidden">
+      <span class="pulse-dot"></span>
+      Auto-Scan Active — Monitoring this page...
+    </div>
+
+    <!-- Subtle loading spinner (shown during API call) -->
+    <div id="loading-state" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <p>Analyzing text...</p>
+    </div>
+
+  </div>
+
+
+  <div id="view-admin-diagnostics" class="view hidden admin-diag-view">
+
+    <header class="header">
+      <div class="header-brand">
+        <svg class="header-shield" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 4L8 14V32C8 46.4 18.4 59.6 32 62C45.6 59.6 56 46.4 56 32V14L32 4Z" fill="url(#shieldGradAdmin)"/>
+          <path d="M22 32L29 39L42 26" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="shieldGradAdmin" x1="8" y1="4" x2="56" y2="62" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6C63FF"/>
+              <stop offset="1" stop-color="#3ECFCF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="header-title">System Diagnostics</span>
+      </div>
+    </header>
+
+    <div class="admin-diag-body">
+
+      <div class="admin-diagnostics-card">
+        <div class="admin-diag-status-row">
+          <span class="admin-diag-dot" id="admin-system-dot"></span>
+          <span id="admin-system-status" class="admin-diagnostics-line">System Status: Checking...</span>
+        </div>
+        <div class="admin-diag-status-row">
+          <span class="admin-diag-dot" id="admin-ext-api-dot"></span>
+          <span id="admin-extension-api-status" class="admin-diagnostics-line">Extension API: Checking...</span>
+        </div>
+        <div class="admin-diag-status-row">
+          <span class="admin-diag-dot" id="admin-scan-api-dot"></span>
+          <span id="admin-scan-engine-api-status" class="admin-diagnostics-line">Scan Engine API: Checking...</span>
+        </div>
+        <div id="admin-last-checked" class="admin-diagnostics-meta">Last checked: —</div>
+      </div>
+
+      <div id="admin-scrape-test-card" class="admin-diagnostics-card hidden" style="margin-top: var(--space-md);">
+        <div id="admin-scrape-test-summary" class="admin-diagnostics-line">Last scraping test: —</div>
+      </div>
+
+      <div class="admin-diag-logged-in" id="admin-diag-user-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="admin-diag-email">Signed in as Admin</span>
+      </div>
+
+    </div>
+
+    <div class="admin-diag-actions">
+      <button id="btn-admin-run-scraping-test" class="btn btn-primary btn-full">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Run Scraping Test
+      </button>
+      <button id="btn-admin-open-dashboard" class="btn btn-secondary btn-full" style="margin-top: var(--space-xs);">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Open Admin Dashboard
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 3: SETTINGS MENU
+       Scanning mode selection and account actions.
+  ============================================================ -->
+  <div id="view-settings" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-settings" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Settings</span>
+      <!-- Empty spacer to balance the flex layout -->
+      <span style="width: 36px;"></span>
+    </header>
+
+    <div class="settings-section">
+      <h2 class="settings-section-title">Scanning Mode</h2>
+      <p class="settings-section-desc">Choose how Suriin AI collects text for analysis.</p>
+
+      <!-- Radio option: Highlight Only -->
+      <label class="radio-card" id="radio-card-highlight">
+        <input type="radio" name="scan-mode" id="mode-highlight" value="highlight" />
+        <div class="radio-card-content">
+          <div class="radio-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <div>
+            <div class="radio-card-title">Highlight Only <span class="badge badge-default">Default</span></div>
+            <div class="radio-card-desc">Scans only the text you manually select.</div>
+          </div>
+        </div>
+        <div class="radio-custom"></div>
+      </label>
+
+      <!-- Radio option: Manual Page Scan -->
+      <label class="radio-card" id="radio-card-manual">
+        <input type="radio" name="scan-mode" id="mode-manual" value="manual" />
+        <div class="radio-card-content">
+          <div class="radio-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div>
+            <div class="radio-card-title">Scan Current Chat</div>
+            <div class="radio-card-desc">Scans only the active chat conversation.</div>
+          </div>
+        </div>
+        <div class="radio-custom"></div>
+      </label>
+
+      <!-- Radio option: Automatic Monitoring (Opt-in) -->
+      <label class="radio-card" id="radio-card-auto">
+        <input type="radio" name="scan-mode" id="mode-auto" value="auto" />
+        <div class="radio-card-content">
+          <div class="radio-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div>
+            <div class="radio-card-title">Automatic Monitoring <span class="badge badge-warning">Opt-in</span></div>
+            <div class="radio-card-desc">Background service watches for suspicious content.</div>
+          </div>
+        </div>
+        <div class="radio-custom"></div>
+      </label>
+    </div>
+
+    <div class="settings-section settings-actions">
+      <!-- Opens a placeholder dashboard in a new tab -->
+      <button id="btn-dashboard" class="btn btn-secondary btn-full">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Go to Web Dashboard
+      </button>
+
+      <!-- Resets onboarding consent -->
+      <button id="btn-revoke" class="btn btn-danger btn-full">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        Reset Extension
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 4: RESULT STATES (Traffic Light System)
+       Conditionally styled by adding a class to #view-result.
+       Classes: result-safe | result-warning | result-critical
+  ============================================================ -->
+  <div id="view-result" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-result" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Scan Result</span>
+      <span style="width: 36px;"></span>
+    </header>
+
+    <!-- The result icon changes dynamically via JS -->
+    <div class="result-hero">
+      <div class="result-ring">
+        <div id="result-icon" class="result-icon">
+          <!-- Icon injected by JS -->
+        </div>
+      </div>
+      <h2 id="result-label" class="result-label">Analyzing...</h2>
+    </div>
+
+    <!-- Confidence meter bar -->
+    <div class="confidence-section">
+      <div class="confidence-header">
+        <span>Risk Score</span>
+        <span id="confidence-value" class="confidence-value">—</span>
+      </div>
+      <div class="confidence-bar-track">
+        <div id="confidence-bar" class="confidence-bar"></div>
+      </div>
+    </div>
+
+    <!-- Security Scan Results Checklist (Explainable AI) -->
+    <div class="security-scan-results" id="security-scan-results">
+      <div class="scan-result-item" data-layer="message-tone">
+        <div class="scan-result-badge" data-emoji="🟢">🟢</div>
+        <div class="scan-result-content">
+          <div class="scan-result-label">AI Scam Result</div>
+          <div class="scan-result-text">Looks safe</div>
+        </div>
+      </div>
+      <div class="scan-result-item" data-layer="gov-records">
+        <div class="scan-result-badge" data-emoji="🟢">🟢</div>
+        <div class="scan-result-content">
+          <div class="scan-result-label">Official SEC / DTI Watchlist</div>
+          <div class="scan-result-text">Clear</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scanned text preview (truncated) -->
+    <div class="scanned-text-box">
+      <p class="scanned-text-label">Analyzed text excerpt:</p>
+      <p id="scanned-text-preview" class="scanned-text-preview" style="white-space: pre-line;">—</p>
+    </div>
+
+    <!-- Conditional action buttons — shown/hidden by JS based on risk level and role -->
+    <!-- User role buttons -->
+    <button id="btn-expert-review" class="btn btn-warning btn-full hidden user-only">
+      <svg class="btn-lock-icon btn-svg-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Report to Expert
+    </button>
+    <button id="btn-report-evidence" class="btn btn-danger btn-full hidden user-only">
+      <svg class="btn-lock-icon btn-svg-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Report to Expert
+    </button>
+
+    <!-- Expert role buttons with spacing -->
+    <div class="expert-actions">
+      <button id="btn-confirm-scam" class="btn btn-danger btn-full hidden expert-only">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Confirm Scam
+      </button>
+      <button id="btn-investigate-further" class="btn btn-primary btn-full hidden expert-only">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Investigate Further
+      </button>
+      <button id="btn-verify-safe" class="btn btn-success btn-full hidden expert-only">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        Verified Safe
+      </button>
+    </div>
+
+    <!-- Guest login prompt — shown when guest clicks a locked button -->
+    <div id="guest-login-prompt" class="guest-login-prompt hidden">
+      <div class="guest-prompt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <p class="guest-prompt-title">Want an expert to review this?</p>
+      <p class="guest-prompt-desc">Log in or create a free account to submit a ticket!</p>
+      <button id="btn-guest-prompt-login" class="btn btn-primary btn-full">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Log In / Sign Up
+      </button>
+      <button id="btn-guest-prompt-close" class="btn btn-ghost btn-full" style="margin-top: var(--space-xs);">
+        Maybe Later
+      </button>
+    </div>
+
+    <!-- Always-visible back / rescan button -->
+    <button id="btn-scan-new" class="btn btn-ghost btn-full">
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Scan New Message
+    </button>
+
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 5: REPORT & EVIDENCE FORM (Flow A — Critical Risk)
+       Pre-fills scanned text, URL, risk score. User adds context.
+  ============================================================ -->
+  <div id="view-report-form" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-report" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Report &amp; Evidence</span>
+      <span style="width: 36px;"></span>
+    </header>
+
+    <!-- Pre-filled fields (read-only) -->
+    <div class="form-prefill-group">
+      <div class="form-prefill">
+        <span class="form-prefill-label">Source URL</span>
+        <span class="form-prefill-value" id="report-prefill-url">—</span>
+      </div>
+      <div class="form-prefill">
+        <span class="form-prefill-label">Risk Score</span>
+        <span class="form-prefill-value form-prefill-value--danger" id="report-prefill-score">—</span>
+      </div>
+    </div>
+
+    <div class="form-prefill">
+      <span class="form-prefill-label">Scanned Text</span>
+      <p class="form-prefill-text" id="report-prefill-text">—</p>
+    </div>
+
+    <!-- Suspect Handle / Name -->
+    <div class="form-group">
+      <label class="form-label" for="report-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
+      <input type="text" id="report-suspect-handle" class="form-input" placeholder="e.g., @scammer_name or Phone Number" />
+    </div>
+
+    <!-- Optional user context -->
+    <div class="form-group">
+      <label class="form-label" for="report-context">Additional Context <span class="form-optional">(optional)</span></label>
+      <textarea id="report-context" class="form-textarea" rows="3" placeholder="Add any extra details about why this is suspicious…"></textarea>
+    </div>
+
+    <!-- Privacy consent -->
+    <label class="consent-row" id="consent-row-report">
+      <input type="checkbox" id="report-consent-checkbox" class="consent-checkbox" />
+      <span class="consent-checkmark"></span>
+      <span class="consent-text">I consent to securely submit this data to Suriin AI for expert analysis.</span>
+    </label>
+
+    <!-- Submit -->
+    <button id="btn-submit-report" class="btn btn-danger btn-full" disabled>
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Submit for Expert Verification
+    </button>
+
+    <!-- Success state with Close and Review Details buttons -->
+    <div id="report-success" class="success-state hidden">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <p class="success-title">Report Submitted Successfully!</p>
+      <p class="success-desc">Our experts will review this case with high priority.</p>
+      <div class="success-actions">
+        <button id="btn-close-report-success" class="btn btn-ghost">Close</button>
+        <button id="btn-review-details-report" class="btn btn-primary">Review Details</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 6: EXPERT REVIEW REQUEST FORM (Flow B — Moderate Risk)
+       Same pre-fill pattern, with prominent "why suspicious" area.
+  ============================================================ -->
+  <div id="view-expert-review-form" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-review" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Expert Review</span>
+      <span style="width: 36px;"></span>
+    </header>
+
+    <!-- Pre-filled fields -->
+    <div class="form-prefill-group">
+      <div class="form-prefill">
+        <span class="form-prefill-label">Source URL</span>
+        <span class="form-prefill-value" id="review-prefill-url">—</span>
+      </div>
+      <div class="form-prefill">
+        <span class="form-prefill-label">Risk Score</span>
+        <span class="form-prefill-value form-prefill-value--warning" id="review-prefill-score">—</span>
+      </div>
+    </div>
+
+    <div class="form-prefill">
+      <span class="form-prefill-label">Scanned Text</span>
+      <p class="form-prefill-text" id="review-prefill-text">—</p>
+    </div>
+
+    <!-- Suspect Handle / Name -->
+    <div class="form-group">
+      <label class="form-label" for="review-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
+      <input type="text" id="review-suspect-handle" class="form-input" placeholder="e.g., @scammer_name or Phone Number" />
+    </div>
+
+    <!-- User reasoning (prominent) -->
+    <div class="form-group">
+      <label class="form-label form-label--highlight" for="review-reason">🔎 Why do you think this is suspicious?</label>
+      <textarea id="review-reason" class="form-textarea form-textarea--highlight" rows="4" placeholder="Describe what caught your attention…"></textarea>
+    </div>
+
+    <!-- Privacy consent -->
+    <label class="consent-row" id="consent-row-review">
+      <input type="checkbox" id="review-consent-checkbox" class="consent-checkbox" />
+      <span class="consent-checkmark"></span>
+      <span class="consent-text">I consent to securely submit this data to Suriin AI for expert analysis.</span>
+    </label>
+
+    <!-- Submit -->
+    <button id="btn-submit-review" class="btn btn-warning btn-full" disabled>
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Request Expert Review
+    </button>
+
+    <!-- Success state with Close and Review Details buttons -->
+    <div id="review-success" class="success-state hidden">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </div>
+      <p class="success-title">Sent to our experts!</p>
+      <p class="success-desc">We will notify you once the review is complete.</p>
+      <div class="success-actions">
+        <button id="btn-close-review-success" class="btn btn-ghost">Close</button>
+        <button id="btn-review-details-user" class="btn btn-primary">Review Details</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 6b: EXPERT CONFIRM SCAM FORM (Expert Only)
+       Similar to report form but with remediation template and no consent.
+  ============================================================ -->
+  <div id="view-expert-confirm-form" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-expert-confirm" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Confirm Scam</span>
+      <span style="width: 36px;"></span>
+    </header>
+
+    <!-- Pre-filled fields (read-only) -->
+    <div class="form-prefill-group">
+      <div class="form-prefill">
+        <span class="form-prefill-label">Source URL</span>
+        <span class="form-prefill-value" id="expert-confirm-prefill-url">—</span>
+      </div>
+      <div class="form-prefill">
+        <span class="form-prefill-label">Risk Score</span>
+        <span class="form-prefill-value form-prefill-value--danger" id="expert-confirm-prefill-score">—</span>
+      </div>
+    </div>
+
+    <div class="form-prefill">
+      <span class="form-prefill-label">Scanned Text</span>
+      <p class="form-prefill-text" id="expert-confirm-prefill-text">—</p>
+    </div>
+
+    <!-- Suspect Handle / Name (maps to source_identifier) -->
+    <div class="form-group">
+      <label class="form-label" for="expert-confirm-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
+      <input type="text" id="expert-confirm-suspect-handle" class="form-input" placeholder="e.g., @scammer_name or Phone Number" />
+    </div>
+
+    <!-- Remediation Template Dropdown -->
+    <div class="form-group">
+      <label class="form-label" for="expert-remediation-template">Remediation Template</label>
+      <select id="expert-remediation-template" class="form-select">
+        <option value="Investment Scam">Investment Scam</option>
+        <option value="Romance Scam">Romance Scam</option>
+        <option value="Phishing">Phishing</option>
+        <option value="Identity Theft">Identity Theft</option>
+        <option value="Product Scam">Product Scam</option>
+        <option value="Job Scam">Job Scam</option>
+        <option value="Custom">Custom</option>
+      </select>
+    </div>
+
+    <!-- Editable Remediation Plan -->
+    <div class="form-group">
+      <label class="form-label" for="expert-remediation-plan">Remediation Plan</label>
+      <textarea id="expert-remediation-plan" class="form-textarea" rows="4" placeholder="Recommended actions to address this threat..."></textarea>
+    </div>
+
+    <!-- Submit -->
+    <button id="btn-submit-expert-confirm" class="btn btn-danger btn-full">
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Confirm Scam &amp; Submit
+    </button>
+
+    <!-- Success state with Close, Review Details, and Back buttons -->
+    <div id="expert-confirm-success" class="success-state hidden">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <p class="success-title">Scam Confirmed!</p>
+      <p class="success-desc">Report saved with status 'Reviewed' and verdict 'Confirmed Threat'.</p>
+      <div class="success-actions">
+        <button id="btn-close-expert-confirm-success" class="btn btn-ghost">Close</button>
+        <button id="btn-review-details-expert" class="btn btn-primary">Review Details</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 6c2: EXPERT VERIFIED SAFE FORM (Expert Only)
+       Expert marks scanned content as safe with justification.
+  ============================================================ -->
+  <div id="view-expert-safe-form" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-expert-safe" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Verified Safe</span>
+      <span style="width: 36px;"></span>
+    </header>
+
+    <div class="form-prefill-group">
+      <div class="form-prefill">
+        <span class="form-prefill-label">Source URL</span>
+        <span class="form-prefill-value" id="expert-safe-prefill-url">—</span>
+      </div>
+      <div class="form-prefill">
+        <span class="form-prefill-label">Risk Score</span>
+        <span class="form-prefill-value" id="expert-safe-prefill-score">—</span>
+      </div>
+    </div>
+
+    <div class="form-prefill">
+      <span class="form-prefill-label">Scanned Text</span>
+      <p class="form-prefill-text" id="expert-safe-prefill-text">—</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="expert-safe-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
+      <input type="text" id="expert-safe-suspect-handle" class="form-input" placeholder="e.g., @username or Phone Number" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="expert-safe-template">Safety Justification Template</label>
+      <select id="expert-safe-template" class="form-select">
+        <option value="Legitimate Business">Legitimate Business</option>
+        <option value="Personal Communication">Personal Communication</option>
+        <option value="Promotional">Promotional</option>
+        <option value="Custom">Custom</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="expert-safe-notes">Safety Justification</label>
+      <textarea id="expert-safe-notes" class="form-textarea" rows="4" placeholder="Explain why this content is safe..."></textarea>
+    </div>
+
+    <button id="btn-submit-expert-safe" class="btn btn-success btn-full">
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+      Verified Safe &amp; Submit
+    </button>
+
+    <div id="expert-safe-success" class="success-state hidden">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+      </div>
+      <p class="success-title">Verified Safe!</p>
+      <p class="success-desc">Report saved with verdict 'Verified Safe'.</p>
+      <div class="success-actions">
+        <button id="btn-close-expert-safe-success" class="btn btn-ghost">Close</button>
+        <button id="btn-review-details-safe" class="btn btn-primary">Review Details</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 6c: EXPERT INVESTIGATE FORM (Expert Only)
+       Simple form for starting an investigation with notes.
+  ============================================================ -->
+  <div id="view-expert-investigate-form" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-expert-investigate" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Start Investigation</span>
+      <span style="width: 36px;"></span>
+    </header>
+
+    <!-- Pre-filled scan summary -->
+    <div class="form-prefill-group">
+      <div class="form-prefill">
+        <span class="form-prefill-label">Source URL</span>
+        <span class="form-prefill-value" id="investigate-prefill-url">—</span>
+      </div>
+      <div class="form-prefill">
+        <span class="form-prefill-label">Risk Score</span>
+        <span class="form-prefill-value form-prefill-value--warning" id="investigate-prefill-score">—</span>
+      </div>
+    </div>
+
+    <div class="form-prefill">
+      <span class="form-prefill-label">Scanned Text</span>
+      <p class="form-prefill-text" id="investigate-prefill-text">—</p>
+    </div>
+
+    <!-- Suspect Handle / Name -->
+    <div class="form-group">
+      <label class="form-label" for="investigate-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
+      <input type="text" id="investigate-suspect-handle" class="form-input" placeholder="e.g., @scammer_name or Phone Number" />
+    </div>
+
+    <!-- Submit -->
+    <button id="btn-submit-expert-investigate" class="btn btn-primary btn-full">
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Start Investigation
+    </button>
+
+    <!-- Success state -->
+    <div id="investigate-success" class="success-state hidden">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <p class="success-title">Investigation Started!</p>
+      <p class="success-desc">This case has been assigned to you and will appear in your "My Investigation" tab.</p>
+      <div class="success-actions">
+        <button id="btn-close-investigate-success" class="btn btn-ghost">Close</button>
+        <button id="btn-review-details-investigate" class="btn btn-primary">Review Details</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 6d: EXPERT MULTI-VERDICT (Expert Only, manual mode ≥2 results)
+       Step-by-step or bulk verdict assignment for multiple flagged texts.
+  ============================================================ -->
+  <div id="view-expert-multi-verdict" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-multi-verdict" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Review Flagged Texts</span>
+      <span style="width: 36px;"></span>
+    </header>
+
+    <!-- Mode toggle -->
+    <div class="mv-toggle-bar">
+      <button id="mv-btn-bulk" class="mv-toggle-btn mv-toggle-active">Apply to All</button>
+      <button id="mv-btn-individual" class="mv-toggle-btn">Individual Review</button>
+    </div>
+
+    <!-- ── BULK SECTION ── -->
+    <div id="mv-bulk-section">
+      <p class="mv-section-desc">Apply one verdict to all <strong id="mv-count">0</strong> flagged text(s):</p>
+      <button id="mv-btn-confirm-all" class="btn btn-danger btn-full">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Confirm All as Scam
+      </button>
+      <button id="mv-btn-investigate-all" class="btn btn-primary btn-full" style="margin-top: var(--space-xs);">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Investigate All
+      </button>
+      <button id="mv-btn-safe-all" class="btn btn-success btn-full" style="margin-top: var(--space-xs);">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        Verified Safe All
+      </button>
+    </div>
+
+    <!-- ── INDIVIDUAL SECTION ── -->
+    <div id="mv-individual-section" class="hidden">
+      <div class="mv-progress-bar">
+        <span id="mv-progress-text" class="mv-progress-text">Text 1 of 1</span>
+        <div id="mv-progress-dots" class="mv-progress-dots"></div>
+      </div>
+
+      <div class="mv-text-card">
+        <p id="mv-text-preview" class="mv-text-preview">—</p>
+        <span id="mv-text-score" class="mv-text-score">Risk: —</span>
+      </div>
+
+      <!-- Per-step verdict buttons (hidden once verdict chosen) -->
+      <div id="mv-verdict-buttons" class="mv-verdict-buttons">
+        <button id="mv-btn-confirm" class="btn btn-danger btn-full">
+          <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          Confirm Scam
+        </button>
+        <button id="mv-btn-investigate" class="btn btn-primary btn-full" style="margin-top:6px;">
+          <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Investigate Further
+        </button>
+        <button id="mv-btn-safe" class="btn btn-success btn-full" style="margin-top:6px;">
+          <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          Verified Safe
+        </button>
+      </div>
+
+      <!-- Inline form (expands when Confirm Scam or Verified Safe chosen) -->
+      <div id="mv-inline-form" class="mv-inline-form hidden">
+        <!-- Confirm Scam inline form -->
+        <div id="mv-confirm-inline" class="hidden">
+          <div class="form-group" style="margin-top:8px;">
+            <label class="form-label" for="mv-remediation-template">Remediation Template</label>
+            <select id="mv-remediation-template" class="form-select">
+              <option value="Investment Scam">Investment Scam</option>
+              <option value="Romance Scam">Romance Scam</option>
+              <option value="Phishing">Phishing</option>
+              <option value="Identity Theft">Identity Theft</option>
+              <option value="Product Scam">Product Scam</option>
+              <option value="Job Scam">Job Scam</option>
+              <option value="Custom">Custom</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mv-remediation-plan">Remediation Plan</label>
+            <textarea id="mv-remediation-plan" class="form-textarea" rows="3" placeholder="Recommended actions..."></textarea>
+          </div>
+        </div>
+        <!-- Verified Safe inline form -->
+        <div id="mv-safe-inline" class="hidden">
+          <div class="form-group" style="margin-top:8px;">
+            <label class="form-label" for="mv-safe-template">Safety Justification Template</label>
+            <select id="mv-safe-template" class="form-select">
+              <option value="Legitimate Business">Legitimate Business</option>
+              <option value="Personal Communication">Personal Communication</option>
+              <option value="Promotional">Promotional</option>
+              <option value="Custom">Custom</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mv-safe-notes">Safety Justification</label>
+            <textarea id="mv-safe-notes" class="form-textarea" rows="3" placeholder="Why this content is safe..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chosen-verdict badge (shown after verdict selected) -->
+      <div id="mv-chosen-badge" class="mv-chosen-badge hidden">
+        Verdict: <strong id="mv-chosen-text">—</strong>
+      </div>
+
+      <!-- Suspect handle (global for individual mode) -->
+      <div class="form-group" id="mv-suspect-row" style="margin-top:8px;">
+        <label class="form-label" for="mv-suspect-handle">Suspect Handle <span class="form-optional">(optional)</span></label>
+        <input type="text" id="mv-suspect-handle" class="form-input" placeholder="@username or Phone" />
+      </div>
+
+      <!-- Navigation -->
+      <div class="mv-nav-row">
+        <button id="mv-btn-prev" class="btn btn-ghost btn-sm">
+          <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Prev
+        </button>
+        <button id="mv-btn-next" class="btn btn-primary btn-sm">
+          Next
+          <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Multi-verdict success -->
+    <div id="mv-success" class="success-state hidden">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <p class="success-title">All Reports Submitted!</p>
+      <p class="success-desc" id="mv-success-desc">Verdicts saved for all flagged texts.</p>
+      <div class="success-actions">
+        <button id="mv-btn-close-success" class="btn btn-ghost">Close</button>
+        <button id="mv-btn-review-success" class="btn btn-primary">Review Details</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       VIEW 7: NOTIFICATION PANEL
+       Shows resolved report notifications + link to dashboard.
+  ============================================================ -->
+  <div id="view-notifications" class="view hidden">
+
+    <header class="header">
+      <button id="btn-back-from-notif" class="btn-icon-only" title="Back" aria-label="Go Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="header-title-centered">Notifications</span>
+      <button id="btn-mark-all-notif" class="notif-mark-all-btn" title="Mark all as read" aria-label="Mark all as read">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>All read</span>
+      </button>
+    </header>
+
+    <div class="notif-scroll-area">
+      <div id="notif-list" class="notif-list">
+        <!-- Populated by JS -->
+      </div>
+
+      <div id="notif-empty" class="notif-empty" style="display:none;">
+        <span class="notif-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </span>
+        <p>You're all caught up!</p>
+      </div>
+    </div>
+
+    <button id="btn-view-dashboard" class="btn btn-primary btn-full">
+      <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      View Full Dashboard
+    </button>
+  </div>
+
+
+  <!-- ============================================================
+       MODAL: AUTO-SCAN CONSENT (One-Time Privacy Agreement)
+       Triggered when user selects Auto mode for the first time.
+  ============================================================ -->
+  <div id="modal-autoscan-consent" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+          <path d="M32 4L8 14V32C8 46.4 18.4 59.6 32 62C45.6 59.6 56 46.4 56 32V14L32 4Z" fill="url(#shieldGradModal)"/>
+          <path d="M22 32L29 39L42 26" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="shieldGradModal" x1="8" y1="4" x2="56" y2="62" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6C63FF"/>
+              <stop offset="1" stop-color="#3ECFCF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h2 class="modal-title">Enable Auto-Scan?</h2>
+      <p class="modal-body">
+        Suriin AI will securely scan URLs and text in the background to warn you of threats instantly.
+        This data is processed temporarily and is <strong>NEVER</strong> saved to our database unless
+        you manually report it.
+      </p>
+      <div class="modal-actions">
+        <button id="btn-consent-agree" class="btn btn-primary btn-full">
+          <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Agree &amp; Enable
+        </button>
+        <button id="btn-consent-cancel" class="btn btn-ghost btn-full">
+          Cancel
+        </button>
+      </div>
+      <p class="modal-footer">
+        This consent is required under the <a href="http://127.0.0.1:5000/privacy" target="_blank">Data Privacy Act</a>. You can disable Auto-Scan anytime.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- popup.js: handles all view switching, settings persistence, and API calls -->
+  <script src="popup.js"></script>
+</body>
+</html>
