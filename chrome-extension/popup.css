@@ -96,7 +96,7 @@ html, body {
    min-height: 0;
    max-height: none;
    height: auto;
-   overflow: visible;
+   overflow: hidden !important;
    font-size: 12.5px;
  }
 
@@ -105,32 +105,31 @@ html, body {
    min-height: 0;
    max-height: none;
    height: auto;
-   /* overflow-y:auto lets the user reach the submit button if resize hasn't
-      fired yet; scrollbar is hidden visually so the iframe looks clean. */
-   overflow-x: hidden;
-   overflow-y: auto;
-   scrollbar-width: none;
+   overflow: hidden !important;
+   scrollbar-width: none !important;
    font-size: 12.5px;
  }
- body.inline-embed::-webkit-scrollbar { display: none; }
+ body.inline-embed::-webkit-scrollbar { display: none !important; }
 
  /* Hard-suppress consent modal — must never appear in inline embed */
  .inline-embed .modal-overlay {
    display: none !important;
  }
 
- /* Allow views to report their full natural height so scrollHeight-based resize works.
-    body.overflow:hidden already prevents iframe scrollbars, so per-view clipping is not needed. */
+ /* Allow views to report their full natural height so scrollHeight-based resize works. */
  .inline-embed .view {
-   overflow: visible;
+   overflow: hidden !important;
  }
 
  /* ── Inline embed: compact overrides ── */
  .inline-embed .success-state {
-   padding: 14px var(--space-md) var(--space-md);
+   padding: var(--space-md);
    gap: var(--space-xs);
    width: 100%;
-   align-self: center;
+   height: 100%;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
    justify-content: center;
  }
 
@@ -156,22 +155,26 @@ html, body {
  }
 
  /* When a form view is showing only its success state, remove its own padding
-    and header so there is no double-padding / empty space around the success card. */
+    and header so there is no double-padding / empty space around the success card,
+    and enforce exactly 300px height. */
  .inline-embed #view-report-form.view:has(.success-state:not(.hidden)),
  .inline-embed #view-expert-review-form.view:has(.success-state:not(.hidden)),
  .inline-embed #view-expert-confirm-form.view:has(.success-state:not(.hidden)),
  .inline-embed #view-expert-investigate-form.view:has(.success-state:not(.hidden)) {
    padding: 0;
-   min-height: 0;
-   height: auto;
-   overflow: hidden;
+   min-height: 300px !important;
+   height: 300px !important;
+   display: flex !important;
+   align-items: center !important;
+   justify-content: center !important;
+   overflow: hidden !important;
  }
 
  .inline-embed #view-report-form:has(.success-state:not(.hidden)) .header,
  .inline-embed #view-expert-review-form:has(.success-state:not(.hidden)) .header,
  .inline-embed #view-expert-confirm-form:has(.success-state:not(.hidden)) .header,
  .inline-embed #view-expert-investigate-form:has(.success-state:not(.hidden)) .header {
-   display: none;
+   display: none !important;
  }
 
  .inline-embed #view-result > .header {
@@ -277,6 +280,10 @@ html, body {
  /* Compact view padding — extra top so ring doesn't touch edge */
  .inline-embed #view-result.view {
    padding: 14px var(--space-md) var(--space-sm);
+   min-height: 300px !important;
+   height: 300px !important;
+   box-sizing: border-box;
+   overflow: hidden !important;
  }
 
  /* ── Inline embed: compact form views (Report, Expert Review, Confirm, Investigate) ── */
@@ -285,7 +292,7 @@ html, body {
  .inline-embed #view-expert-confirm-form.view,
  .inline-embed #view-expert-investigate-form.view {
    padding: var(--space-sm) var(--space-md);
-   overflow: visible;
+   overflow: hidden !important;
  }
 
  /* Compact form header in inline */
@@ -509,6 +516,100 @@ hr.divider {
    font-size: 12px;
    color: var(--color-text-secondary);
  }
+
+/* --------------------------------------------------------------------------
+   OPERATIONAL METRICS GRID (Expert Manager View)
+   -------------------------------------------------------------------------- */
+.admin-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.admin-metric-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm);
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-fast);
+}
+
+.admin-metric-card:hover {
+  border-color: var(--color-border-hover);
+  transform: translateY(-2px);
+}
+
+.admin-metric-card.critical {
+  border-color: rgba(255, 90, 90, 0.4);
+  background: linear-gradient(135deg, rgba(255, 90, 90, 0.08), rgba(26, 25, 40, 0.9));
+}
+
+.admin-metric-card.critical:hover {
+  border-color: rgba(255, 90, 90, 0.6);
+  box-shadow: 0 4px 20px rgba(255, 90, 90, 0.2);
+}
+
+.admin-metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.admin-metric-card.critical .admin-metric-value {
+  color: var(--color-crit);
+  text-shadow: 0 0 12px rgba(255, 90, 90, 0.4);
+}
+
+.admin-metric-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.admin-metric-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  opacity: 0.5;
+}
+
+.admin-metric-dot.loading {
+  background: var(--color-brand);
+  animation: metricPulse 1.5s ease-in-out infinite;
+}
+
+.admin-metric-dot.ready {
+  background: var(--color-safe);
+  opacity: 1;
+}
+
+.admin-metric-card.critical .admin-metric-dot.ready {
+  background: var(--color-crit);
+  box-shadow: 0 0 8px rgba(255, 90, 90, 0.6);
+}
+
+@keyframes metricPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+@media (max-width: 360px) {
+  .admin-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+}
 
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(8px); }

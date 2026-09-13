@@ -124,13 +124,17 @@
             <div class="stat-card__label">Average Resolution Time</div>
             <div class="stat-card__value" id="stat-analytics-avg-rt"><div class="skeleton-cell" style="width: 60px; height: 32px;"></div></div>
           </div>
-          <div class="stat-card stat-card--resolved" id="card-corrective">
-            <div class="stat-card__label">Corrective Actions</div>
-            <div class="stat-card__value" id="stat-analytics-corrective"><div class="skeleton-cell" style="width: 60px; height: 32px;"></div></div>
+          <div class="stat-card stat-card--resolved" id="card-total-resolved">
+            <div class="stat-card__label">Total Resolved Cases</div>
+            <div class="stat-card__value" id="stat-analytics-total-resolved"><div class="skeleton-cell" style="width: 60px; height: 32px;"></div></div>
           </div>
-          <div class="stat-card stat-card--warning" id="card-complex-triage">
-            <div class="stat-card__label">Complex Triage</div>
-            <div class="stat-card__value" id="stat-analytics-complex"><div class="skeleton-cell" style="width: 60px; height: 32px;"></div></div>
+          <div class="stat-card stat-card--safe" id="card-verified-safe">
+            <div class="stat-card__label">Verified Safe</div>
+            <div class="stat-card__value" id="stat-analytics-verified-safe"><div class="skeleton-cell" style="width: 60px; height: 32px;"></div></div>
+          </div>
+          <div class="stat-card stat-card--critical" id="card-confirmed-threat">
+            <div class="stat-card__label">Confirmed Threat</div>
+            <div class="stat-card__value" id="stat-analytics-confirmed-threat"><div class="skeleton-cell" style="width: 60px; height: 32px;"></div></div>
           </div>
         </div>
 
@@ -138,7 +142,7 @@
           <section class="chart-card">
             <div class="chart-card__header">
               <h3 class="chart-card__title">Expert Triage Impact</h3>
-              <span class="chart-card__subtitle">AI Confirmations vs Overrides vs Uncertainty</span>
+              <span class="chart-card__subtitle">AI Confirmations vs Overrides</span>
             </div>
             <div class="chart-card__body" style="position: relative; height: 420px;">
               <canvas id="analytics-triage-impact" aria-label="Triage impact stacked chart"></canvas>
@@ -148,7 +152,7 @@
           <section class="chart-card">
             <div class="chart-card__header">
               <h3 class="chart-card__title">Threat Level Distribution</h3>
-              <span class="chart-card__subtitle">Your resolved cases: Safe vs Warning vs Critical/Scam</span>
+              <span class="chart-card__subtitle">Your resolved cases: Warning vs Critical</span>
             </div>
             <div class="chart-card__body" style="position: relative; height: 420px;">
               <canvas id="analytics-threat-bar-chart" aria-label="Threat level distribution chart"></canvas>

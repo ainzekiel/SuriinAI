@@ -34,6 +34,23 @@ try {
   firebase.initializeApp(FIREBASE_CONFIG);
   authInstance = firebase.auth();
   dbInstance = firebase.firestore();
+  
+  // Enable offline persistence for better performance and reduced Firestore reads
+  dbInstance.enablePersistence({
+    synchronizeTabs: true,
+    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+  }).then(() => {
+    console.log('[SuriinAI] Firestore offline persistence enabled');
+  }).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('[SuriinAI] Firestore persistence failed: Multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      console.warn('[SuriinAI] Firestore persistence not available in this browser');
+    } else {
+      console.error('[SuriinAI] Firestore persistence error:', err);
+    }
+  });
+  
   console.log('[SuriinAI] Firebase initialized successfully');
 } catch (err) {
   console.error('[SuriinAI] Firebase initialization error:', err);
@@ -202,6 +219,17 @@ class PrivacyAgreementModal {
     if (urlParams.has('reset-privacy')) {
       console.log('[SuriinAI Privacy] 🔄 Reset parameter detected - clearing localStorage');
       localStorage.removeItem('privacy_policy_agreed');
+      // Remove param from URL so it doesn't persist
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    // Check for account deletion success parameter
+    if (urlParams.has('deleted')) {
+      console.log('[SuriinAI] ✅ Account deletion success parameter detected');
+      // Show success message after a brief delay
+      setTimeout(() => {
+        alert('Your account has been successfully deleted. Your reports have been anonymized to help protect others from scams. Thank you for using Suriin AI.');
+      }, 500);
       // Remove param from URL so it doesn't persist
       window.history.replaceState({}, document.title, window.location.pathname);
     }

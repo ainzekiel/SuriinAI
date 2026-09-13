@@ -472,12 +472,12 @@ async function loadResolvedTodayCount() {
 }
 
 function renderStats() {
-  const pending = triageReports.filter((report) => report.status === 'Unassigned' || report.status === 'Pending').length;
+  const unassigned = triageReports.filter((report) => report.status === 'Unassigned' || report.status === 'Pending').length;
   const myInvestigations = triageReports.filter((report) => (
     (report.status === 'Under Review' || report.status === 'Investigating' || report.status === 'Under Investigation') && report.assigned_to === currentExpertId
   )).length;
 
-  setText('stat-pending', String(pending));
+  setText('stat-unassigned', String(unassigned));
   setText('stat-my-investigating', String(myInvestigations));
   setText('stat-resolved-today', String(resolvedTodayCount));
 }

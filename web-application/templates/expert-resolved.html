@@ -118,7 +118,7 @@
 
       <main class="dashboard-main">
         <h1 class="dashboard-title">Resolved Case History</h1>
-        <p class="dashboard-subtitle">Read-only archive of cases you have personally closed.</p>
+        <p class="dashboard-subtitle">Read-only archive of closed cases.</p>
 
         <section class="reports-section">
           <div class="reports-header">
@@ -126,9 +126,15 @@
             <span class="reports-header__count" id="resolved-count">0 cases</span>
           </div>
 
-          <!-- Resolved Cases -->
-          <div class="triage-tabs" style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); border-bottom: 1px solid var(--clr-border);">
-            <button class="tab-btn active" id="tab-resolved" style="background: none; border: none; border-bottom: 2px solid var(--clr-accent); color: var(--clr-accent); padding: var(--space-sm) var(--space-md); font-size: var(--font-sm); font-weight: 500; cursor: pointer;">Resolved</button>
+          <!-- Resolved Cases Tabs -->
+          <div class="triage-tabs" id="resolved-tabs" style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); border-bottom: 1px solid var(--clr-border);">
+            <button class="tab-btn active" id="tab-my-resolved" data-tab="my" style="background: none; border: none; border-bottom: 2px solid var(--clr-accent); color: var(--clr-accent); padding: var(--space-sm) var(--space-md); font-size: var(--font-sm); font-weight: 500; cursor: pointer; position: relative; transition: all 0.2s ease;">
+              My Resolved Cases
+              <span class="tab-glow" style="position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: var(--clr-accent); box-shadow: 0 0 10px var(--clr-accent), 0 0 20px var(--clr-accent);"></span>
+            </button>
+            <button class="tab-btn" id="tab-all-resolved" data-tab="all" style="background: none; border: none; border-bottom: 2px solid transparent; color: var(--clr-text-muted); padding: var(--space-sm) var(--space-md); font-size: var(--font-sm); font-weight: 500; cursor: pointer; position: relative; transition: all 0.2s ease;">
+              All Resolved Cases
+            </button>
           </div>
 
           <!-- Filter bar -->
@@ -224,8 +230,8 @@
               </div>
             </div>
             
-            <!-- Right: Source Identifier (50%) -->
-            <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-md);">
+            <!-- Right: Source Identifier (hidden) -->
+            <div style="flex: 1 1 0; min-width: 0; display: none !important; flex-direction: column; gap: var(--space-md);">
               <div style="background: var(--clr-bg-secondary); padding: var(--space-md); border-radius: var(--radius-md); flex: 1; display: flex; flex-direction: column; justify-content: center;">
                 <div style="font-size: var(--font-xs); color: var(--clr-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Source Identifier</div>
                 <div style="font-size: var(--font-sm); font-weight: 500; color: var(--clr-text-primary); word-break: break-all;" id="modal-source-identifier">—</div>

@@ -1,6 +1,6 @@
-/**
- * dashboard.js — Suriin AI Real-Time Dashboard Logic
- * ═══════════════════════════════════════════════════════════════════════════
+﻿/**
+ * dashboard.js â€” Suriin AI Real-Time Dashboard Logic
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
  * Handles:
  *   1. Real-time Firestore listeners (onSnapshot) for the Reports collection
  *   2. User Dashboard: filtered to current user's reports only
@@ -9,7 +9,7 @@
  *   5. Toast notifications for status changes
  *   6. Report Details Modal (open/close/populate)
  *   7. PDF Evidence Download (print-based)
- * ═══════════════════════════════════════════════════════════════════════════
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
  */
 
 'use strict';
@@ -39,7 +39,7 @@ window.addEventListener('suriin:auth-ready', (e) => {
   initDashboard(user, role);
 });
 
-// ── State ─────────────────────────────────────────────────────────────────────
+// â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let allReports         = [];
 let currentFilter      = 'all';  // status filter
 let currentVerdictFilter = 'all';  // verdict filter
@@ -51,12 +51,12 @@ let lastSnapshotHash   = null;    // deduplicate identical snapshot fires (null 
 let userCurrentPage    = 1;       // current page for pagination
 const userReportsPerPage = 10;    // items per page
 
-// ── Page detection ────────────────────────────────────────────────────────────
+// â”€â”€ Page detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const isDashboardExpertPage = window.location.pathname.includes('admin-dashboard');
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  MAIN INIT
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function initDashboard(user, role) {
   if (dashboardInitialized) return; // prevent double-init from both checkAuthAndInit + event
@@ -71,12 +71,13 @@ function initDashboard(user, role) {
   // Initialize dashboard for user
   dashboardInitialized = true; // Set to true only after Firestore check passes
 
-  setupFilterChips();
+  initFilterChips();
+  initTabs();
   setupModal();
   // Notification bell is now handled by notification-bell.js
   // setupNotificationBell(user, db);
 
-  // ── Set up the real-time listener ────────────────────────────────────────
+  // â”€â”€ Set up the real-time listener â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const reportsRef = db.collection('Reports');
 
   // Query without orderBy to avoid composite-index requirement while the index
@@ -104,7 +105,7 @@ function initDashboard(user, role) {
       // Build a lightweight hash of doc-ids + statuses to detect real changes
       const hash = snapshot.docs.map(d => d.id + (d.data().status || '')).join(',');
       if (lastSnapshotHash !== null && hash === lastSnapshotHash) {
-        return; // identical to last render — skip
+        return; // identical to last render â€” skip
       }
       lastSnapshotHash = hash;
 
@@ -125,7 +126,7 @@ function initDashboard(user, role) {
     }
   );
 
-  // ── Open modal from URL param (if present) ──────────────────────────────
+  // â”€â”€ Open modal from URL param (if present) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const params = new URLSearchParams(window.location.search);
   const targetReportId = params.get('report_id');
   if (targetReportId) {
@@ -136,9 +137,9 @@ function initDashboard(user, role) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  STATS
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function updateStats() {
   if (isDashboardExpertPage) {
@@ -149,18 +150,32 @@ function updateStats() {
 }
 
 function updateUserStats() {
-  const notDismissed = allReports.filter(r => r.status !== 'Dismissed');
+  // Total Reports: count ALL reports for this user (including Dismissed)
+  const total = allReports.length;
 
-  const total = notDismissed.length;
-  const underReview = notDismissed.filter(r =>
-    r.status === 'Unassigned' || r.status === 'Pending' ||
-    r.status === 'Under Review' || r.status === 'Investigating' || r.status === 'Under Investigation'
+  // Under Investigation: only active investigation statuses (backward compatible)
+  const underInvestigation = allReports.filter(r =>
+    r.status === 'Under Investigation' || r.status === 'Investigating' || r.status === 'Under Review'
   ).length;
-  const confirmed = notDismissed.filter(r => (r.expert_verdict || r.expertVerdict) === 'Confirmed Threat').length;
-  const verifiedSafe = notDismissed.filter(r => (r.expert_verdict || r.expertVerdict) === 'Safe').length;
+
+  // Confirmed Threat: only Resolved/Reviewed reports with threat verdict (backward compatible)
+  // Excludes Dismissed reports
+  const notDismissed = allReports.filter(r => r.status !== 'Dismissed');
+  const confirmed = notDismissed.filter(r => {
+    const verdict = (r.expert_verdict || r.expertVerdict || '').toLowerCase();
+    const isResolved = r.status === 'Resolved' || r.status === 'Reviewed';
+    return isResolved && (verdict.includes('threat') || verdict === 'confirmed threat');
+  }).length;
+
+  // Verified Safe: only Resolved/Reviewed reports with safe verdict (backward compatible)
+  const verifiedSafe = notDismissed.filter(r => {
+    const verdict = (r.expert_verdict || r.expertVerdict || '').toLowerCase();
+    const isResolved = r.status === 'Resolved' || r.status === 'Reviewed';
+    return isResolved && verdict.includes('safe');
+  }).length;
 
   animateCounter('stat-total', total);
-  animateCounter('stat-under-review', underReview);
+  animateCounter('stat-under-investigation', underInvestigation);
   animateCounter('stat-confirmed', confirmed);
   animateCounter('stat-verified-safe', verifiedSafe);
 }
@@ -194,7 +209,7 @@ function animateCounter(elementId, target) {
   const current = parseInt(el.textContent) || 0;
   if (current === target) return;
 
-  // First ever render: instant set — no animation to cause layout bounce
+  // First ever render: instant set â€” no animation to cause layout bounce
   if (renderCount === 0) {
     el.textContent = target;
     return;
@@ -215,9 +230,9 @@ function animateCounter(elementId, target) {
   requestAnimationFrame(tick);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  TABLE RENDERING
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function renderTable() {
   const tbody      = document.getElementById('reports-tbody');
@@ -265,10 +280,10 @@ function renderTable() {
       <tr>
         <td colspan="6" style="text-align: center; padding: 48px 24px;">
           <div style="color: var(--clr-text-muted);">
-            <div style="font-size: 2.5rem; margin-bottom: 16px;">📭</div>
+            <div style="font-size: 2.5rem; margin-bottom: 16px;">ðŸ“­</div>
             <div style="font-weight: 600; font-size: var(--font-md); margin-bottom: 8px; color: var(--clr-text-secondary);">No reports submitted yet</div>
             <div style="font-size: var(--font-sm); max-width: 400px; margin: 0 auto; line-height: 1.5;">
-              You haven't submitted any scam reports yet. Install the <strong>Suriin AI Chrome Extension</strong> and browse normally — it will automatically detect and submit suspicious content for analysis.
+              You haven't submitted any scam reports yet. Install the <strong>Suriin AI Chrome Extension</strong> and browse normally â€” it will automatically detect and submit suspicious content for analysis.
             </div>
           </div>
         </td>
@@ -296,7 +311,7 @@ function renderTable() {
 
   let rowsHtml = '';
   if (filtered.length === 0 && allReports.length > 0) {
-    // Filters active but no matches — full styled empty state (table never collapses)
+    // Filters active but no matches â€” full styled empty state (table never collapses)
     const cols = isDashboardExpertPage ? 8 : 6;
     rowsHtml = `
       <tr class="filter-empty-row">
@@ -312,7 +327,7 @@ function renderTable() {
         </td>
       </tr>`;
   } else {
-    // ── Pagination Logic ───────────────────────────────────────────────────
+    // â”€â”€ Pagination Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const totalPages = Math.ceil(filtered.length / userReportsPerPage);
     if (userCurrentPage > totalPages) userCurrentPage = totalPages;
     if (userCurrentPage < 1) userCurrentPage = 1;
@@ -391,7 +406,7 @@ function renderTable() {
     });
   }
 
-  // Attach click listener on each row (User dashboard — row replaces View button)
+  // Attach click listener on each row (User dashboard â€” row replaces View button)
   if (!isDashboardExpertPage) {
     tbody.querySelectorAll('tr[data-report-id]').forEach((row) => {
       row.addEventListener('click', () => {
@@ -401,7 +416,7 @@ function renderTable() {
   }
 }
 
-// ── Risk Factor structured HTML ───────────────────────────────────────────────
+// â”€â”€ Risk Factor structured HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildRiskFactorHtml(report, riskScore) {
   const rows = [];
   if (report.matched_company) {
@@ -443,7 +458,7 @@ function buildRiskFactorHtml(report, riskScore) {
   return `<div class="risk-factor-list">${rows.join('')}</div>`;
 }
 
-// ── AI Verdict Badge ──────────────────────────────────────────────────────────
+// â”€â”€ AI Verdict Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildAiVerdictBadge(report) {
   const v = String(report.ai_verdict || report.report_type || report.request_type || '').toUpperCase();
   if (v === 'CRITICAL' || v === 'CRITICAL_REPORT') {
@@ -455,10 +470,10 @@ function buildAiVerdictBadge(report) {
   if (v === 'SAFE' || v === 'CLEAN') {
     return '<span class="badge" style="background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.3);">Safe</span>';
   }
-  return '<span class="badge">' + (v || '—') + '</span>';
+  return '<span class="badge">' + (v || 'â€”') + '</span>';
 }
 
-// ── Expert Verdict Badge ───────────────────────────────────────────────────────
+// â”€â”€ Expert Verdict Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildExpertVerdictBadge(report) {
   const status = report.status || 'Unassigned';
   const verdict = report.expert_verdict || report.expertVerdict || '';
@@ -471,15 +486,15 @@ function buildExpertVerdictBadge(report) {
   }
   if (status === 'Resolved' || status === 'Reviewed') {
     const v = String(verdict).toLowerCase();
-    if (v === 'safe') {
-      return '<span class="badge" style="background: rgba(34,197,94,0.15); color:#22c55e; border:1px solid rgba(34,197,94,0.35);">Verified Safe</span>';
+    if (v.includes('safe')) {
+      return '<span class="badge badge--safe">Verified Safe</span>';
     } else if (v === 'confirmed threat' || v === 'scam') {
       return '<span class="badge" style="background: rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.35);">Confirmed Threat</span>';
     } else if (verdict) {
       return `<span class="badge">${escapeHtml(verdict)}</span>`;
     }
   }
-  return '<span class="badge" style="background: var(--clr-bg-secondary); color: var(--clr-text-muted); border: 1px solid var(--clr-border);">—</span>';
+  return '<span class="badge" style="background: var(--clr-bg-secondary); color: var(--clr-text-muted); border: 1px solid var(--clr-border);">â€”</span>';
 }
 
 function buildAiScoreBadge(report) {
@@ -492,7 +507,7 @@ function buildAiScoreBadge(report) {
   return `<span class="badge ${cls}">${label}</span>`;
 }
 
-// ── User Dashboard Row ────────────────────────────────────────────────────────
+// â”€â”€ User Dashboard Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildUserRow(report) {
   const date        = formatDateSingleLine(report.created_at);
   const platform    = extractPlatform(report.url);
@@ -510,16 +525,16 @@ function buildUserRow(report) {
   `;
 }
 
-// ── Expert Dashboard Row ──────────────────────────────────────────────────────
+// â”€â”€ Expert Dashboard Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildExpertRow(report) {
   const date      = formatDate(report.created_at);
   const userId    = escapeHtml(report.user_id || 'anonymous');
-  const url       = escapeHtml(report.url || '—');
+  const url       = escapeHtml(report.url || 'â€”');
   const evidenceRaw = report.evidence || report.text || '';
   const text      = escapeHtml(evidenceRaw.substring(0, 80));
   const riskScore = report.risk_score ?? 0;
   const riskLevel = classifyRisk(riskScore);
-  const heuristic = escapeHtml(report.heuristics || '—');
+  const heuristic = escapeHtml(report.heuristics || 'â€”');
   const rawSt     = report.status || 'Unassigned';
   const status    = (rawSt === 'Under Investigation') ? 'Under Review'
     : (rawSt === 'Pending') ? 'Unassigned'
@@ -530,7 +545,7 @@ function buildExpertRow(report) {
     <td>${date}</td>
     <td class="text-preview" title="${userId}">${userId}</td>
     <td class="url-cell" title="${url}">${url}</td>
-    <td class="text-preview" title="${escapeHtml(evidenceRaw)}">${text || '—'}</td>
+    <td class="text-preview" title="${escapeHtml(evidenceRaw)}">${text || 'â€”'}</td>
     <td>${buildRiskBar(riskScore, riskLevel)}</td>
     <td class="text-preview" title="${heuristic}">${heuristic}</td>
     <td>${buildStatusBadge(status)}</td>
@@ -538,9 +553,9 @@ function buildExpertRow(report) {
   `;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  REPORT DETAILS MODAL
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function setupModal() {
   const overlay    = document.getElementById('report-modal-overlay');
@@ -582,7 +597,14 @@ function openReportModal(reportId) {
   const overlay = document.getElementById('report-modal-overlay');
   if (!overlay) return;
 
-  // ── Populate modal fields ──────────────────────────────────────────────
+  // â”€â”€ Populate modal fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Modal Title with shortened Report ID
+  const modalTitleEl = document.getElementById('modal-title');
+  if (modalTitleEl) {
+    const shortId = reportId.slice(-6).toUpperCase();
+    modalTitleEl.textContent = `Report Details #${shortId}`;
+  }
+
   // Date
   const dateEl = document.getElementById('modal-date');
   if (dateEl) dateEl.innerHTML = formatDate(report.created_at);
@@ -593,7 +615,7 @@ function openReportModal(reportId) {
 
   // Discovery Context: Source Identifier
   const srcIdEl = document.getElementById('modal-source-identifier');
-  if (srcIdEl) srcIdEl.textContent = report.source_identifier || report.sourceIdentifier || '—';
+  if (srcIdEl) srcIdEl.textContent = report.source_identifier || report.sourceIdentifier || 'â€”';
 
   // Discovery Context: User Context (same style as extracted text)
   const userCtxContainer = document.getElementById('modal-user-context-container');
@@ -651,7 +673,7 @@ function openReportModal(reportId) {
     barFillEl.className = `risk-breakdown__bar-fill risk-breakdown__bar-fill--${riskLevel}`;
   }
 
-  // Risk Factors — structured badge layout
+  // Risk Factors â€” structured badge layout
   const factorsEl = document.getElementById('modal-risk-factors');
   if (factorsEl) factorsEl.innerHTML = buildRiskFactorHtml(report, riskScore);
 
@@ -693,9 +715,10 @@ function openReportModal(reportId) {
       const verdictLabel = isUnderInvestigation ? 'Investigating' : rawVerdictLabel;
       const verdictBadgeEl = document.getElementById('modal-expert-verdict-badge');
       const verdictHeaderEl = document.getElementById('modal-expert-verdict-header');
+      const verdictLower = String(verdictLabel).toLowerCase();
       const verdictClass = verdictLabel === 'Confirmed Threat' ? 'badge--verdict-threat'
                         : verdictLabel === 'Invalid'          ? 'badge--verdict-invalid'
-                        : verdictLabel === 'Safe'             ? 'badge--verdict-safe'
+                        : verdictLower.includes('safe')       ? 'badge--verdict-safe'
                         : verdictLabel === 'Investigating'    ? 'badge--status-investigating'
                         : '';
       const verdictHtml = `<span class="badge ${verdictClass}">${escapeHtml(verdictLabel)}</span>`;
@@ -704,13 +727,16 @@ function openReportModal(reportId) {
 
       // Safe alert vs notes visibility (+ Safety Justification)
       const safeAlertEl = document.getElementById('modal-safe-alert');
+      const threatAlertEl = document.getElementById('modal-threat-alert');
       const notesWrapperEl = document.getElementById('modal-expert-notes');
       const notesLabelEl = document.getElementById('modal-expert-notes-label');
       const safeJustWrapper = document.getElementById('modal-safety-justification-wrapper');
       const safeJustEl = document.getElementById('modal-safety-justification');
+      const isConfirmedThreat = verdictLower.includes('threat') || verdictLower.includes('confirm');
 
-      if (verdictLabel === 'Safe') {
+      if (verdictLower.includes('safe')) {
         if (safeAlertEl) safeAlertEl.style.display = '';
+        if (threatAlertEl) threatAlertEl.style.display = 'none';
         if (notesWrapperEl) notesWrapperEl.style.display = 'none';
         if (notesLabelEl) notesLabelEl.style.display = 'none';
         if (safeJustWrapper) safeJustWrapper.style.display = '';
@@ -718,16 +744,30 @@ function openReportModal(reportId) {
           const sj = report.safety_justification || report.safetyJustification || '';
           safeJustEl.innerHTML = sj ? escapeHtml(sj).replace(/\n/g, '<br>') : '<p class="text-muted">No justification provided.</p>';
         }
+      } else if (isConfirmedThreat) {
+        // Confirmed Threat: show investigation complete alert, hide safety justification
+        if (safeAlertEl) safeAlertEl.style.display = 'none';
+        if (threatAlertEl) threatAlertEl.style.display = '';
+        if (safeJustWrapper) safeJustWrapper.style.display = 'none';
+        if (notesWrapperEl) notesWrapperEl.style.display = '';
+        if (notesLabelEl) notesLabelEl.style.display = '';
       } else {
         if (safeAlertEl) safeAlertEl.style.display = 'none';
+        if (threatAlertEl) threatAlertEl.style.display = 'none';
         if (notesWrapperEl) notesWrapperEl.style.display = '';
         if (notesLabelEl) notesLabelEl.style.display = '';
         if (safeJustWrapper) safeJustWrapper.style.display = 'none';
       }
 
-      // Change label for Dismissed status
+      // Change label for Dismissed status and Confirmed Threat
       if (notesLabelEl) {
-        notesLabelEl.textContent = (rawStatus === 'Dismissed') ? 'Dismissal Note' : 'Reasoning & Analysis';
+        if (rawStatus === 'Dismissed') {
+          notesLabelEl.textContent = 'Dismissal Note';
+        } else if (isConfirmedThreat) {
+          notesLabelEl.textContent = 'Remediation Plan';
+        } else {
+          notesLabelEl.textContent = 'Reasoning & Analysis';
+        }
       }
 
       // Assigned To (only if Under Investigation)
@@ -743,15 +783,47 @@ function openReportModal(reportId) {
         }
       }
 
-      // Expert Notes → Reasoning & Analysis (hidden when Under Investigation)
+      // Resolved At (only for Resolved/Reviewed status)
+      const resolvedAtItem = document.getElementById('modal-resolved-at-item');
+      const resolvedAtEl = document.getElementById('modal-resolved-at');
+      if (resolvedAtItem && resolvedAtEl) {
+        const isResolved = ['Resolved', 'Reviewed'].includes(rawStatus);
+        if (isResolved && report.resolved_at) {
+          resolvedAtEl.textContent = formatDateSingleLine(report.resolved_at);
+          resolvedAtItem.style.display = '';
+        } else if (isResolved && report.updated_at) {
+          resolvedAtEl.textContent = formatDateSingleLine(report.updated_at);
+          resolvedAtItem.style.display = '';
+        } else {
+          resolvedAtItem.style.display = 'none';
+        }
+      }
+
+      // Expert Notes â†’ Reasoning & Analysis (hidden when Under Investigation)
       if (isUnderInvestigation) {
         if (notesWrapperEl) notesWrapperEl.style.display = 'none';
         if (notesLabelEl) notesLabelEl.style.display = 'none';
       } else if (notesWrapperEl) {
-        const notes = report.expert_notes || report.expertNotes || '';
         const verdictLabelLower = (verdictLabel || '').toLowerCase();
-        const shouldHideNotes = verdictLabelLower === 'safe' || verdictLabelLower === 'confirmed threat';
-        if (!shouldHideNotes) {
+        const isSafeVerdict = verdictLabelLower === 'safe';
+        const isConfirmedThreatVerdict = verdictLabelLower === 'confirmed threat';
+        
+        if (isSafeVerdict) {
+          // Safe: hide notes (safety justification is shown separately)
+          notesWrapperEl.style.display = 'none';
+        } else if (isConfirmedThreatVerdict) {
+          // Confirmed Threat: show remediation plan
+          const remediation = report.remediation_plan || report.remediationPlan || '';
+          notesWrapperEl.style.display = '';
+          if (remediation) {
+            notesWrapperEl.innerHTML = escapeHtml(remediation).replace(/\n/g, '<br>');
+          } else {
+            notesWrapperEl.innerHTML = '<p class="text-muted">No remediation plan available.</p>';
+          }
+        } else {
+          // Other statuses: show expert notes
+          const notes = report.expert_notes || report.expertNotes || '';
+          notesWrapperEl.style.display = '';
           if (notes) {
             notesWrapperEl.innerHTML = escapeHtml(notes).replace(/\n/g, '<br>');
           } else {
@@ -780,20 +852,16 @@ function openReportModal(reportId) {
     // Determine visibility and content
     let showAction = false;
     if (verdictNorm === 'Confirmed Threat') {
-      const plan = report.remediation_plan || report.remediationPlan || '';
-      actionTitleEl.textContent = 'How to Protect Yourself';
-      actionBodyEl.innerHTML = plan
-        ? escapeHtml(plan).replace(/\n/g, '<br>')
-        : 'Please contact your local authorities or your bank immediately to secure your accounts.';
-      showAction = true;
+      // Hide the How to Protect Yourself section - remediation plan will be shown in Forensic Review
+      showAction = false;
     } else if (rawStatus === 'Dismissed') {
-      // No separate dismissal rationale — show nothing; use Dismissal Note in Forensic Review instead
+      // No separate dismissal rationale â€” show nothing; use Dismissal Note in Forensic Review instead
       showAction = false;
     }
     actionSection.style.display = showAction ? 'block' : 'none';
   }
 
-  // ── Show modal ────────────────────────────────────────────────────────
+  // â”€â”€ Show modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   overlay.style.display = '';
   overlay.classList.remove('closing');
   document.body.style.overflow = 'hidden';
@@ -805,15 +873,13 @@ function openReportModal(reportId) {
   const downloadBtn = document.getElementById('modal-download-pdf');
   if (downloadBtn) {
     const status = report.status || 'Pending';
-    const isDisabled = status === 'Pending' || status === 'Investigating' || status === 'Under Investigation';
+    // Show PDF button only for Resolved or Reviewed status
+    const showPdf = status === 'Resolved' || status === 'Reviewed';
     
-    downloadBtn.disabled = isDisabled;
+    downloadBtn.style.display = showPdf ? 'flex' : 'none';
+    downloadBtn.disabled = !showPdf;
     
-    if (isDisabled) {
-      downloadBtn.title = 'Forensic report available after expert review completion';
-      downloadBtn.style.opacity = '0.5';
-      downloadBtn.style.cursor = 'not-allowed';
-    } else {
+    if (showPdf) {
       downloadBtn.title = 'Download forensic report as PDF';
       downloadBtn.style.opacity = '1';
       downloadBtn.style.cursor = 'pointer';
@@ -837,532 +903,116 @@ function closeReportModal() {
   }, 220);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  PDF EVIDENCE DOWNLOAD (Print-based)
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  PDF EVIDENCE DOWNLOAD (Backend ReportLab)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-function downloadPdfEvidence() {
+async function downloadPdfEvidence() {
   const overlay = document.getElementById('report-modal-overlay');
   if (!overlay) return;
 
   const reportId = overlay.dataset.currentReportId;
-  const report   = allReports.find(r => r.id === reportId);
-  if (!report) { showToast('Report data not found.', 'error'); return; }
+  if (!reportId) { showToast('Report ID not found.', 'error'); return; }
 
-  // ── Loading state ──────────────────────────────────────────────────────────
+  // â”€â”€ Loading state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const btn     = document.getElementById('modal-download-pdf');
   const btnText = btn && btn.querySelector('.btn-text');
   const origLabel = btnText ? btnText.textContent : null;
   if (btn)     btn.disabled = true;
-  if (btnText) btnText.textContent = '⏳ Generating...';
+  if (btnText) btnText.textContent = 'Generating...';
 
-  // Defer to next tick so the button update paints before PDF build blocks the thread
-  // Additional delay to ensure jsPDF plugins are fully loaded
-  setTimeout(() => {
-    try {
-      // Check if jsPDF is available
-      if (!window.jspdf) {
-        throw new Error('jsPDF library not loaded');
-      }
-      
-      const { jsPDF } = window.jspdf;
-      
-      // Try to manually attach AutoTable plugin if it's available globally
-      if (window.jspdf && window.jspdf.autoTable) {
-        jsPDF.autoTable = window.jspdf.autoTable;
-      } else if (window.jspdfAutotable) {
-        jsPDF.autoTable = window.jspdfAutotable;
-      }
-      
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      
-      // Check if AutoTable plugin is available
-      if (typeof doc.autoTable !== 'function') {
-        console.error('[PDF] AutoTable plugin not found:', {
-          jspdfLoaded: !!window.jspdf,
-          autoTableLoaded: !!window.jspdf?.autoTable,
-          jspdfAutotableLoaded: !!window.jspdfAutotable,
-          docAutoTable: typeof doc.autoTable
-        });
-        throw new Error('jsPDF AutoTable plugin not loaded. Please check script loading order.');
-      }
-      
-      console.log('[PDF] jsPDF and AutoTable initialized successfully');
-
-      // ── Constants ───────────────────────────────────────────────────────────
-      const PAGE_W    = doc.internal.pageSize.getWidth();
-      const PAGE_H    = doc.internal.pageSize.getHeight();
-      const MARGIN    = 48;
-      const USABLE_W  = PAGE_W - MARGIN * 2;
-      const ACCENT    = [108, 99, 255];   // purple
-      const DARK      = [15, 15, 25];
-      const MUTED     = [120, 120, 140];
-      const WHITE     = [255, 255, 255];
-
-      // Risk level colours
-      const riskScore = report.risk_score ?? 0;
-      const riskLevel = classifyRisk(riskScore);
-      const riskPct   = Math.round(riskScore * 100);
-      const VERDICT_COLOR = riskLevel === 'critical' ? [220, 38, 38]
-                          : riskLevel === 'warning'  ? [234, 88, 12]
-                          :                            [22, 163, 74];
-      const VERDICT_LABEL = riskLevel === 'critical' ? 'CRITICAL'
-                          : riskLevel === 'warning'  ? 'WARNING'
-                          :                            'SAFE';
-      
-      // Status variable for conditional sections
-      const status = report.status || '';
-
-      let y = MARGIN;
-
-      // ── Header band ─────────────────────────────────────────────────────────
-      doc.setFillColor(...ACCENT);
-      doc.rect(0, 0, PAGE_W, 64, 'F');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(20);
-      doc.setTextColor(...WHITE);
-      doc.text('Suriin AI', MARGIN, 36);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(...WHITE);
-      let headerText = 'Forensic Evidence Report';
-      if (report.status === 'Reviewed') {
-        headerText = 'Suriin AI Certified - Forensic Evidence Report';
-      } else if (report.status === 'Dismissed') {
-        headerText = 'DISMISSAL RECORD';
-        // Use gray accent for dismissed state (matching Invalid/Dismissed badge)
-        doc.setFillColor(107, 114, 128);
-        doc.rect(0, 0, PAGE_W, 64, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(20);
-        doc.setTextColor(...WHITE);
-        doc.text('Suriin AI', MARGIN, 36);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.text(headerText, MARGIN, 48);
-      } else {
-        doc.text(headerText, MARGIN, 48);
-      }
-
-      // Generated timestamp (right-aligned in header)
-      const genDate = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
-      doc.setFontSize(8);
-      doc.setTextColor(200, 200, 255);
-      doc.text(`Generated: ${genDate}`, PAGE_W - MARGIN, 52, { align: 'right' });
-
-      y = 88;
-
-      // ── Section helper ───────────────────────────────────────────────────────
-      // Returns the y position where content should start (after label + rule + gap)
-      function sectionTitle(label) {
-        if (y + 40 > PAGE_H - MARGIN) { doc.addPage(); y = MARGIN; }
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.5);
-        doc.setTextColor(...ACCENT);
-        doc.text(label.toUpperCase(), MARGIN, y);
-        y += 5;
-        doc.setDrawColor(...ACCENT);
-        doc.setLineWidth(0.4);
-        doc.line(MARGIN, y, MARGIN + USABLE_W, y);
-        y += 14; // generous gap so content doesn't crowd the rule
-      }
-
-      function bodyText(text, size = 9.5, color = [40, 40, 55]) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(size);
-        doc.setTextColor(...color);
-        const lines = doc.splitTextToSize(String(text), USABLE_W);
-        lines.forEach(line => {
-          if (y + 16 > PAGE_H - MARGIN) { doc.addPage(); y = MARGIN; }
-          doc.text(line, MARGIN, y);
-          y += 14;
-        });
-      }
-
-      // ── Metadata table ───────────────────────────────────────────────────────
-      sectionTitle('Report Details');
-
-      const reqType = (report.report_type || report.request_type || report.requestType || '').toLowerCase();
-      const reqLabel = (reqType === 'expert_review' || reqType === 'expert_review_request')
-        ? 'Expert Review' : (reqType === 'evidence' || reqType === 'critical_report')
-        ? 'Evidence' : reqType || '—';
-
-      // Prepare reporter information
-      const reporterInfo = report.user_email || report.user_id || 'Anonymous';
-      const sourceIdentifier = report.source_identifier || report.sourceIdentifier || '—';
-
-      doc.autoTable({
-        startY: y,
-        margin: { left: MARGIN, right: MARGIN },
-        tableWidth: USABLE_W,
-        head: [],
-        body: [
-          ['Report ID',       report.id || '—'],
-          ['Date Submitted',  formatDatePlain(report.created_at)],
-          ['Reporter',        reporterInfo],
-          ['Source Identifier', sourceIdentifier],
-          ['Platform',        extractPlatform(report.url)],
-          ['Scanned URL',     report.url || '—'],
-          ['Status',          report.status || 'Pending'],
-          ['Request Type',    reqLabel],
-        ],
-        columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 120, fillColor: [237, 237, 247], textColor: [55, 55, 90] },
-          1: { fillColor: [255, 255, 255], textColor: [30, 30, 50] },
-        },
-        styles: {
-          fontSize: 9,
-          cellPadding: { top: 6, bottom: 6, left: 8, right: 8 },
-          lineColor: [210, 210, 225],
-          lineWidth: 0.4,
-          overflow: 'linebreak',
-        },
-        theme: 'grid',
-      });
-
-      y = (doc.lastAutoTable.finalY || y) + 22;
-
-      // ── Verdict ──────────────────────────────────────────────────────────────
-      sectionTitle('Risk Verdict');
-      y += 20; // Larger gap between section title and verdict label
-
-      if (y + 120 > PAGE_H - MARGIN) { doc.addPage(); y = MARGIN; }
-
-      // Verdict label (large, own line) with proper spacing
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(32);
-      doc.setTextColor(...VERDICT_COLOR);
-      doc.text(VERDICT_LABEL, MARGIN, y);
-      y += 28; // Balanced spacing after large verdict label
-
-      // Risk score sub-label on its own line
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      doc.setTextColor(...MUTED);
-      doc.text(`Risk Score: ${riskPct}%`, MARGIN, y);
-      y += 20; // Spacing before bar
-
-      // Risk bar track with better sizing
-      if (y + 20 > PAGE_H - MARGIN) { doc.addPage(); y = MARGIN; }
-      doc.setFillColor(218, 218, 228);
-      doc.roundedRect(MARGIN, y, USABLE_W, 12, 3, 3, 'F');
-      // Risk bar fill
-      doc.setFillColor(...VERDICT_COLOR);
-      const fillW = Math.max(8, (riskPct / 100) * USABLE_W);
-      doc.roundedRect(MARGIN, y, fillW, 12, 3, 3, 'F');
-      y += 36; // Spacing after bar
-
-      // ── Risk Factors ─────────────────────────────────────────────────────────
-      sectionTitle('Risk Factors');
-      const factors = report.heuristics || 'No risk factors recorded.';
-      bodyText(factors);
-      y += 10;
-
-      // ── User Statement Section ───────────────────────────────────────────────────
-      const userContext = report.user_context || report.userContext || '';
-      if (userContext) {
-        sectionTitle('User Statement');
-        bodyText(userContext);
-        y += 10;
-      }
-
-      // ── Expert Review Section (only if reviewed or dismissed) ───────────────────────
-      if (status === 'Reviewed' || status === 'Dismissed') {
-        sectionTitle('Expert Review');
-        
-        // Expert Verdict
-        const verdict = report.expert_verdict || report.expertVerdict || '';
-        let verdictDisplay = 'Unknown';
-        let verdictColor = MUTED;
-        
-        if (status === 'Dismissed') {
-          verdictDisplay = 'Invalid';
-          verdictColor = [148, 163, 184];
-        } else if (verdict) {
-          const v = String(verdict).toLowerCase();
-          if (v === 'safe') {
-            verdictDisplay = 'Verified Safe';
-            verdictColor = [34, 197, 94];
-          } else if (v === 'confirmed threat' || v === 'scam') {
-            verdictDisplay = 'Confirmed Threat';
-            verdictColor = [239, 68, 68];
-          } else if (v === 'false positive') {
-            verdictDisplay = 'False Positive';
-            verdictColor = [148, 163, 184];
-          }
-        }
-        
-        // Verdict display
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.setTextColor(...verdictColor);
-        doc.text(`Expert Verdict: ${verdictDisplay}`, MARGIN, y);
-        y += 20;
-        
-        // Verified/Dismissed By (get last reviewing expert)
-        const history = Array.isArray(report.resolutionHistory) ? report.resolutionHistory : [];
-        // Find last expert entry by checking assigned_email (expert identity) and relevant statuses
-        const lastExpertEntry = history.filter(h => 
-          h.assigned_email && 
-          (h.status === 'Reviewed' || h.status === 'Dismissed' || h.status === 'Resolved')
-        ).pop();
-        if (lastExpertEntry && lastExpertEntry.assigned_email) {
-          const expertName = '@' + lastExpertEntry.assigned_email.split('@')[0];
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          doc.setTextColor(...MUTED);
-          const attributionLabel = status === 'Dismissed' ? 'Dismissed by' : 'Verified By';
-          doc.text(`${attributionLabel}: ${expertName}`, MARGIN, y);
-          y += 18;
-        }
-        
-        // Dismissal Reason (for dismissed reports)
-        if (status === 'Dismissed') {
-          const expertNotes = report.expert_notes || report.expertNotes || '';
-          if (expertNotes) {
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.setTextColor(107, 114, 128); // Gray color matching dismissed badge
-            doc.text('Dismissal Reason:', MARGIN, y);
-            y += 16;
-            
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(...DARK);
-            const noteLines = doc.splitTextToSize(expertNotes, USABLE_W);
-            noteLines.forEach(line => {
-              if (y + 14 > PAGE_H - MARGIN) { doc.addPage(); y = MARGIN; }
-              doc.text(line, MARGIN, y);
-              y += 12;
-            });
-            y += 10;
-          }
-        }
-        
-        // Remediation Plan or Safety Justification
-        if (status === 'Reviewed') {
-          if (verdictDisplay === 'Verified Safe') {
-            const safety = report.safety_justification || report.safetyJustification || '';
-            if (safety) {
-              doc.setFont('helvetica', 'bold');
-              doc.setFontSize(11);
-              doc.setTextColor(...DARK);
-              doc.text('Safety Justification:', MARGIN, y);
-              y += 14;
-              bodyText(safety);
-              y += 10;
-            }
-          } else if (verdictDisplay === 'Confirmed Threat') {
-            const remediation = report.remediationPlan || report.remediation_plan || '';
-            if (remediation) {
-              doc.setFont('helvetica', 'bold');
-              doc.setFontSize(11);
-              doc.setTextColor(...DARK);
-              doc.text('Remediation Plan:', MARGIN, y);
-              y += 14;
-              bodyText(remediation);
-              y += 10;
-            }
-          }
-        }
-        
-        y += 10;
-      }
-
-      // ── Scanned Evidence Text ────────────────────────────────────────────────
-      sectionTitle('Scanned Evidence Text');
-      const evidence = report.text || 'No extracted text available.';
-      bodyText(evidence);
-      y += 10;
-
-      // ── Resolution History Table ───────────────────────────────────────────────
-      const history = Array.isArray(report.resolutionHistory) ? report.resolutionHistory 
-                     : Array.isArray(report.resolution_history) ? report.resolution_history 
-                     : [];
-      
-      if (history.length > 0) {
-        sectionTitle('Resolution History');
-        
-        // Prepare history data for table
-        const historyData = history.map(h => {
-          const date = formatDatePlain(h.timestamp || h.date || h.time || h.updated_at || h.created_at);
-          const status = h.status || '—';
-          // Format expert name as @username from email, fallback to role
-          let performedBy = 'User';
-          if (h.assigned_email) {
-            performedBy = '@' + h.assigned_email.split('@')[0];
-          } else if (h.by === 'System') {
-            performedBy = 'System';
-          } else if (h.expertId) {
-            performedBy = 'Expert';
-          }
-          return [date, status, performedBy];
-        }); // Show oldest first (chronological order)
-        
-        if (y + 80 > PAGE_H - MARGIN - 80) { doc.addPage(); y = MARGIN; }
-        
-        doc.autoTable({
-          startY: y,
-          margin: { left: MARGIN, right: MARGIN },
-          tableWidth: USABLE_W,
-          head: [['Date', 'Action', 'Performed by']],
-          body: historyData,
-          columnStyles: {
-            0: { fontStyle: 'bold', cellWidth: 120, fillColor: [237, 237, 247], textColor: [55, 55, 90] },
-            1: { fillColor: [255, 255, 255], textColor: [30, 30, 50] },
-            2: { fillColor: [255, 255, 255], textColor: [30, 30, 50], fontStyle: 'italic' }
-          },
-          styles: {
-            fontSize: 8,
-            cellPadding: { top: 4, bottom: 4, left: 6, right: 6 },
-            lineColor: [210, 210, 225],
-            lineWidth: 0.4,
-            overflow: 'linebreak',
-          },
-          theme: 'grid',
-        });
-        
-        y = (doc.lastAutoTable.finalY || y) + 22;
-      }
-
-      // ── Certification Footer ─────────────────────────────────────────────────────
-      const FOOTER_H = 85;
-      // If content is too close to bottom, push footer to a new page
-      if (y + FOOTER_H > PAGE_H - MARGIN) { doc.addPage(); }
-
-      const footerY = PAGE_H - MARGIN - FOOTER_H;
-      doc.setDrawColor(...MUTED);
-      doc.setLineWidth(0.4);
-      doc.line(MARGIN, footerY, MARGIN + USABLE_W, footerY);
-
-      // Generate report hash for authenticity
-      const reportHash = generateReportHash(report);
-      const certDate = new Date().toLocaleString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-      // Certification text
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(...ACCENT);
-      doc.text('Certified by Suriin AI', MARGIN, footerY + 15);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(...MUTED);
-      doc.text(`Report Hash: ${reportHash}`, MARGIN, footerY + 25);
-      doc.text(`Generated: ${certDate}`, MARGIN, footerY + 35);
-
-      // Right-aligned verification info
-      doc.text('Verification: suriin.ai/verify', PAGE_W - MARGIN, footerY + 25, { align: 'right' });
-      
-      if (status === 'Reviewed') {
-        doc.setTextColor(34, 197, 94);
-        doc.text('✓ Authenticated Report', PAGE_W - MARGIN, footerY + 35, { align: 'right' });
-      } else if (status === 'Dismissed') {
-        doc.setTextColor(220, 38, 38);
-        doc.text('✗ Dismissed Report', PAGE_W - MARGIN, footerY + 35, { align: 'right' });
-      } else {
-        doc.setTextColor(251, 146, 60);
-        doc.text('⚠ Pending Review', PAGE_W - MARGIN, footerY + 35, { align: 'right' });
-      }
-
-      // Disclaimer text
-      const disclaimerText =
-        'DISCLAIMER: This report is generated based on data captured from the user\'s browser session. ' +
-        'It is intended for informational and threat-awareness purposes only. Because client-side data ' +
-        'can be modified prior to scanning, this report should be used as a primary triage tool rather ' +
-        'than a certified forensic proof.';
-
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(7.5);
-      doc.setTextColor(...MUTED);
-      const dLines = doc.splitTextToSize(disclaimerText, USABLE_W);
-      let dy = footerY + 50;
-      dLines.forEach(line => {
-        doc.text(line, MARGIN, dy);
-        dy += 10;
-      });
-
-      // ── Build preview overlay ──────────────────────────────────────────────
-      const pdfBlob = doc.output('blob');
-      const blobUrl = URL.createObjectURL(pdfBlob);
-      const fileName = `Suriin_Report_${report.id}.pdf`;
-
-      // Overlay backdrop
-      const overlayEl = document.createElement('div');
-      overlayEl.className = 'pdf-preview-overlay';
-
-      // Card
-      const cardEl = document.createElement('div');
-      cardEl.className = 'pdf-preview-card';
-
-      // Header
-      const headerEl = document.createElement('div');
-      headerEl.className = 'pdf-preview-header';
-
-      const titleEl = document.createElement('span');
-      titleEl.className = 'pdf-preview-header__title';
-      titleEl.textContent = `📄 ${fileName}`;
-
-      const dlBtn = document.createElement('a');
-      dlBtn.className = 'pdf-preview-header__btn pdf-preview-header__btn--download';
-      dlBtn.href = blobUrl;
-      dlBtn.download = fileName;
-      dlBtn.textContent = '⬇ Download';
-
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'pdf-preview-header__btn pdf-preview-header__btn--close';
-      closeBtn.textContent = '✕ Close';
-
-      headerEl.appendChild(titleEl);
-      headerEl.appendChild(dlBtn);
-      headerEl.appendChild(closeBtn);
-
-      // iframe
-      const frameEl = document.createElement('iframe');
-      frameEl.className = 'pdf-preview-frame';
-      frameEl.src = blobUrl;
-      frameEl.title = 'PDF Preview';
-
-      cardEl.appendChild(headerEl);
-      cardEl.appendChild(frameEl);
-      overlayEl.appendChild(cardEl);
-      document.body.appendChild(overlayEl);
-
-      // Close handlers
-      function closePdfPreview() {
-        overlayEl.remove();
-        URL.revokeObjectURL(blobUrl);
-        document.removeEventListener('keydown', onEsc);
-      }
-      function onEsc(e) { if (e.key === 'Escape') closePdfPreview(); }
-
-      closeBtn.addEventListener('click', closePdfPreview);
-      overlayEl.addEventListener('click', (e) => { if (e.target === overlayEl) closePdfPreview(); });
-      document.addEventListener('keydown', onEsc);
-
-      showToast('PDF ready — preview opened.', 'success');
-
-    } catch (err) {
-      console.error('[SuriinAI] PDF generation error:', err);
-      showToast('Failed to generate PDF. Please try again.', 'error');
-    } finally {
-      if (btn)     btn.disabled = false;
-      if (btnText) btnText.textContent = origLabel;
+  try {
+    // Get auth token - window.__suriinAuth is { user, role, profile }
+    const auth = window.__suriinAuth;
+    if (!auth || !auth.user) {
+      throw new Error('Not authenticated');
     }
-  }, 200);
+    const token = await auth.user.getIdToken();
+
+    // Call backend endpoint
+    const response = await fetch(`/api/report/evidence-pdf?report_id=${encodeURIComponent(reportId)}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    // Get PDF blob and show preview
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const shortFileId = reportId.slice(-6).toUpperCase();
+    const fileName = `Suriin_Report_${shortFileId}.pdf`;
+
+    // Build preview overlay
+    const overlayEl = document.createElement('div');
+    overlayEl.className = 'pdf-preview-overlay';
+
+    const cardEl = document.createElement('div');
+    cardEl.className = 'pdf-preview-card';
+
+    const headerEl = document.createElement('div');
+    headerEl.className = 'pdf-preview-header';
+
+    const titleEl = document.createElement('span');
+    titleEl.className = 'pdf-preview-header__title';
+    titleEl.textContent = 'Suriin AI - Forensic Evidence Report';
+
+    const dlBtn = document.createElement('a');
+    dlBtn.className = 'pdf-preview-header__btn pdf-preview-header__btn--download';
+    dlBtn.href = blobUrl;
+    dlBtn.download = fileName;
+    dlBtn.textContent = 'Download Report';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'pdf-preview-header__btn pdf-preview-header__btn--close';
+    closeBtn.textContent = 'Close';
+
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(dlBtn);
+    headerEl.appendChild(closeBtn);
+
+    const frameEl = document.createElement('iframe');
+    frameEl.className = 'pdf-preview-frame';
+    frameEl.src = blobUrl;
+    frameEl.title = 'PDF Preview';
+
+    cardEl.appendChild(headerEl);
+    cardEl.appendChild(frameEl);
+    overlayEl.appendChild(cardEl);
+    document.body.appendChild(overlayEl);
+
+    // Close handlers
+    function closePdfPreview() {
+      overlayEl.remove();
+      URL.revokeObjectURL(blobUrl);
+      document.removeEventListener('keydown', onEsc);
+    }
+    function onEsc(e) { if (e.key === 'Escape') closePdfPreview(); }
+
+    closeBtn.addEventListener('click', closePdfPreview);
+    overlayEl.addEventListener('click', (e) => { if (e.target === overlayEl) closePdfPreview(); });
+    document.addEventListener('keydown', onEsc);
+
+    showToast('PDF ready - preview opened.', 'success');
+
+  } catch (err) {
+    console.error('[SuriinAI] PDF generation error:', err);
+    showToast('Failed to generate PDF: ' + err.message, 'error');
+  } finally {
+    if (btn)     btn.disabled = false;
+    if (btnText) btnText.textContent = origLabel;
+  }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  STATUS UPDATE (Expert only)
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function handleStatusChange(e) {
   const select   = e.target;
@@ -1370,138 +1020,137 @@ async function handleStatusChange(e) {
   const newStatus = select.value;
 
   try {
-    const token = await window.__suriinGetIdToken();
+    // Get fresh token - window.__suriinAuth is { user, role, profile }
+    let token;
+    if (window.__suriinAuth && window.__suriinAuth.user) {
+      token = await window.__suriinAuth.user.getIdToken();
+    } else {
+      throw new Error('Not authenticated');
+    }
 
-    const res = await fetch('/api/update-report-status', {
-      method: 'POST',
+    const response = await fetch(`/api/report/${reportId}/status`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ report_id: reportId, status: newStatus })
+      body: JSON.stringify({ status: newStatus })
     });
 
-    const data = await res.json();
-
-    if (data.success) {
-      showToast(`Report updated to "${newStatus}"`, 'success');
-    } else {
-      showToast(`Update failed: ${data.error}`, 'error');
-      // Revert the dropdown
-      const original = allReports.find(r => r.id === reportId);
-      if (original) select.value = original.status;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    // Update local state
+    const original = allReports.find(r => r.id === reportId);
+    if (original) {
+      original.status = newStatus;
+      renderTable();
+    }
+
+    showToast('Status updated', 'success');
+
   } catch (err) {
     console.error('[SuriinAI Dashboard] Status update error:', err);
     showToast('Failed to update status. Please try again.', 'error');
+    // Revert the select to original value
+    const original = allReports.find(r => r.id === reportId);
+    if (original) select.value = original.status;
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  FILTER CHIPS (Expert only)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+function initFilterChips() {
+  const container = document.getElementById('expert-filter-chips');
+  if (!container) return;
+
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-chip');
+    if (!btn) return;
+
+    const filter = btn.dataset.filter;
+    if (!filter) return;
+
+    // Toggle active state
+    const wasActive = btn.classList.contains('active');
+
+    // Deactivate all
+    container.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+
+    if (!wasActive) {
+      btn.classList.add('active');
+      currentFilter = filter;
+    } else {
+      currentFilter = null;
+    }
+
+    renderTable();
+  });
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TABS (User dashboard)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function setupFilterChips() {
-  // ── Expert dashboard: chip buttons ────────────────────────────────────────
-  const filterBar = document.getElementById('filter-bar');
-  if (filterBar) {
-    filterBar.addEventListener('click', (e) => {
-      const chip = e.target.closest('.filter-chip');
-      if (!chip) return;
-      filterBar.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      currentFilter = chip.dataset.filter;
-      userCurrentPage = 1; // Reset to first page on filter change
-      renderTable();
-    });
-  }
-
-  // ── User dashboard: tab switching ─────────────────────────────────────────
+function initTabs() {
   const tabActive = document.getElementById('tab-active');
   const tabResolved = document.getElementById('tab-resolved');
   const filterBarActive = document.getElementById('user-filter-bar-active');
   const filterBarResolved = document.getElementById('user-filter-bar-resolved');
-
-  function switchTab(tab) {
-    currentTab = tab;
-    currentFilter = 'all';
-    currentVerdictFilter = 'all';
-    userCurrentPage = 1;
-    const isActive = tab === 'active';
-    if (tabActive) {
-      tabActive.style.borderBottomColor = isActive ? 'var(--clr-accent)' : 'transparent';
-      tabActive.style.color = isActive ? 'var(--clr-accent)' : 'var(--clr-text-secondary)';
-    }
-    if (tabResolved) {
-      tabResolved.style.borderBottomColor = !isActive ? 'var(--clr-accent)' : 'transparent';
-      tabResolved.style.color = !isActive ? 'var(--clr-accent)' : 'var(--clr-text-secondary)';
-    }
-    if (filterBarActive) filterBarActive.style.display = isActive ? '' : 'none';
-    if (filterBarResolved) filterBarResolved.style.display = !isActive ? '' : 'none';
-    // reset selects
-    const statusSel = document.getElementById('filter-status');
-    const verdictSel = document.getElementById('filter-verdict');
-    if (statusSel) statusSel.value = 'all';
-    if (verdictSel) verdictSel.value = 'all';
+  
+  if (!tabActive || !tabResolved) return; // Not on user dashboard
+  
+  tabActive.addEventListener('click', () => {
+    currentTab = 'active';
+    
+    // Update tab styles
+    tabActive.style.borderBottom = '2px solid var(--clr-accent)';
+    tabActive.style.color = 'var(--clr-accent)';
+    tabResolved.style.borderBottom = '2px solid transparent';
+    tabResolved.style.color = 'var(--clr-text-secondary)';
+    
+    // Show/hide filter bars
+    if (filterBarActive) filterBarActive.style.display = 'block';
+    if (filterBarResolved) filterBarResolved.style.display = 'none';
+    
     renderTable();
-  }
-
-  if (tabActive) tabActive.addEventListener('click', () => switchTab('active'));
-  if (tabResolved) tabResolved.addEventListener('click', () => switchTab('resolved'));
-
-  // ── User dashboard: select dropdowns ──────────────────────────────────────
-  const statusSel = document.getElementById('filter-status');
-  const verdictSel = document.getElementById('filter-verdict');
-
-  if (statusSel) {
-    statusSel.addEventListener('change', () => {
-      currentFilter = statusSel.value;
-      userCurrentPage = 1;
-      renderTable();
-    });
-  }
-
-  if (verdictSel) {
-    verdictSel.addEventListener('change', () => {
-      currentVerdictFilter = verdictSel.value;
-      userCurrentPage = 1;
-      renderTable();
-    });
-  }
-
-  // ── Pagination Button Listeners ───────────────────────────────────────────
-  const btnPrev = document.getElementById('user-pagination-prev');
-  const btnNext = document.getElementById('user-pagination-next');
-
-  if (btnPrev) {
-    btnPrev.addEventListener('click', () => {
-      if (userCurrentPage > 1) {
-        userCurrentPage--;
-        renderTable();
-      }
-    });
-  }
-
-  if (btnNext) {
-    btnNext.addEventListener('click', () => {
-      userCurrentPage++;
-      renderTable();
-    });
-  }
+  });
+  
+  tabResolved.addEventListener('click', () => {
+    currentTab = 'resolved';
+    
+    // Update tab styles
+    tabResolved.style.borderBottom = '2px solid var(--clr-accent)';
+    tabResolved.style.color = 'var(--clr-accent)';
+    tabActive.style.borderBottom = '2px solid transparent';
+    tabActive.style.color = 'var(--clr-text-secondary)';
+    
+    // Show/hide filter bars
+    if (filterBarActive) filterBarActive.style.display = 'none';
+    if (filterBarResolved) filterBarResolved.style.display = 'block';
+    
+    renderTable();
+  });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 //  UI BUILDERS
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-function buildRiskBar(score, level) {
-  const percent = Math.round(score * 100);
+function renderRiskBar(score) {
+  const n = Number(score || 0);
+  const pct = Math.round(n * 100);
+  let level = 'safe';
+  if (pct >= 85) level = 'critical';
+  else if (pct >= 40) level = 'warning';
+
   return `
-    <div class="risk-bar">
-      <div class="risk-bar__track">
-        <div class="risk-bar__fill risk-bar__fill--${level}" style="width: ${percent}%"></div>
-      </div>
-      <span class="risk-bar__label" style="color: var(--clr-${level})">${percent}%</span>
+    <div class="risk-bar" title="Risk Score: ${pct}%">
+      <div class="risk-bar__fill" style="width: ${pct}%; background: var(--clr-${level});"></div>
+      <span class="risk-bar__label" style="color: var(--clr-${level})">${pct}%</span>
     </div>
   `;
 }
@@ -1514,15 +1163,14 @@ function normalizeRisk(score) {
 
 function buildThreatBadge(score) {
   const pct = Math.round(score * 100);
+  let cls = 'badge--safe';
   let label = 'Safe';
-  let cls = 'risk-score-badge--safe';
-
   if (pct >= 85) {
+    cls = 'badge--critical';
     label = 'Critical';
-    cls = 'risk-score-badge--critical';
   } else if (pct >= 40) {
+    cls = 'badge--warning';
     label = 'Warning';
-    cls = 'risk-score-badge--warning';
   }
 
   return `<span class="badge ${cls}" title="Threat level: ${label}">${label} (${pct}%)</span>`;
@@ -1530,23 +1178,24 @@ function buildThreatBadge(score) {
 
 function buildStatusBadge(status) {
   const classMap = {
-    'Unassigned':          'badge--pending',
-    'Pending':             'badge--pending',
-    'Under Review':        'badge--investigating',
-    'Under Investigation': 'badge--investigating',
-    'Investigating':       'badge--investigating',
-    'Resolved':            'badge--reviewed',
-    'Reviewed':            'badge--reviewed',
-    'Dismissed':           'badge--dismissed',
+    'Unassigned': 'badge--unassigned',
+    'Under Review': 'badge--review',
+    'Under Investigation': 'badge--review',
+    'Resolved': 'badge--resolved',
+    'Reviewed': 'badge--resolved',
+    'Dismissed': 'badge--safe',
+    'Pending': 'badge--unassigned'
   };
-  const cls = classMap[status] || 'badge--pending';
+  const cls = classMap[status] || 'badge--default';
+
   const displayMap = {
-    'Pending':             'Pending',
-    'Unassigned':          'Pending',
-    'Under Investigation': 'Investigating',
-    'Investigating':       'Investigating',
-    'Under Review':        'Investigating',
-    'Reviewed':            'Resolved',
+    'Under Investigation': 'Under Investigation',
+    'Investigating': 'Under Investigation',
+    'Resolved': 'Resolved',
+    'Reviewed': 'Verified',
+    'Dismissed': 'Dismissed',
+    'Pending': 'Unassigned',
+    'Unassigned': 'Unassigned'
   };
   const displayStatus = displayMap[status] || status;
   return `<span class="badge ${cls}">${escapeHtml(displayStatus)}</span>`;
@@ -1554,101 +1203,65 @@ function buildStatusBadge(status) {
 
 function buildStatusDropdown(reportId, currentStatus) {
   const options = ['Unassigned', 'Under Review', 'Resolved'];
-  const normCurrent = currentStatus === 'Pending' ? 'Unassigned'
-    : (currentStatus === 'Under Investigation' || currentStatus === 'Investigating') ? 'Under Review'
-    : (currentStatus === 'Reviewed') ? 'Resolved'
-    : currentStatus;
+  const normCurrent = currentStatus === 'Pending' ? 'Unassigned' : currentStatus;
   const optionsHtml = options.map(opt =>
     `<option value="${opt}" ${opt === normCurrent ? 'selected' : ''}>${opt}</option>`
   ).join('');
   return `<select class="status-select" data-report-id="${reportId}">${optionsHtml}</select>`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  UTILITIES
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+function formatDate(iso) {
+  if (!iso) return '<span class="text-muted">â€”</span>';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateTime(iso) {
+  if (!iso) return 'â€”';
+  const d = new Date(iso);
+  return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDatePlain(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateSingleLine(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function extractPlatform(url) {
+  if (!url) return 'â€”';
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (hostname.includes('facebook')) return 'Facebook';
+    if (hostname.includes('twitter') || hostname.includes('x.com')) return 'Twitter/X';
+    if (hostname.includes('instagram')) return 'Instagram';
+    if (hostname.includes('telegram')) return 'Telegram';
+    if (hostname.includes('discord')) return 'Discord';
+    if (hostname.includes('whatsapp')) return 'WhatsApp';
+    if (hostname.includes('youtube')) return 'YouTube';
+    if (hostname.includes('tiktok')) return 'TikTok';
+    if (hostname.includes('linkedin')) return 'LinkedIn';
+    return hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
 
 function classifyRisk(score) {
-  if (score >= 0.85) return 'critical';
-  if (score >= 0.40) return 'warning';
+  const pct = Math.round((score || 0) * 100);
+  if (pct >= 85) return 'critical';
+  if (pct >= 40) return 'warning';
   return 'safe';
-}
-
-/**
- * Extracts a readable platform name from a URL.
- * "https://www.facebook.com/scam-page" → "facebook.com"
- * Falls back to the raw URL or "—" if empty.
- */
-function extractPlatform(url) {
-  if (!url) return '—';
-  try {
-    const hostname = new URL(url).hostname.replace(/^www\./, '');
-    return hostname || url;
-  } catch {
-    // Not a valid URL — just show it truncated
-    return url.length > 30 ? url.substring(0, 30) + '…' : url;
-  }
-}
-
-function formatDate(isoString) {
-  if (!isoString) return '—';
-  try {
-    const d = new Date(isoString);
-    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    return `${date}<br><small style="color: var(--clr-text-muted);">${time}</small>`;
-  } catch {
-    return isoString;
-  }
-}
-
-function formatDateSingleLine(isoString) {
-  if (!isoString) return '—';
-  try {
-    const d = new Date(isoString);
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day:   'numeric',
-      year:  'numeric',
-      hour:  '2-digit',
-      minute:'2-digit'
-    });
-  } catch {
-    return isoString;
-  }
-}
-
-function formatDatePlain(isoString) {
-  if (!isoString) return '—';
-  try {
-    const d = new Date(isoString);
-    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    return `${date} ${time}`;
-  } catch {
-    return isoString;
-  }
-}
-
-function formatDateForTimeline(isoString) {
-  if (!isoString) return '—';
-  try {
-    const d = new Date(isoString);
-    // Format: MM/DD/YYYY with leading zeros
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const year = d.getFullYear();
-    const date = `${month}/${day}/${year}`;
-    // Time on next line: HH:MM AM/PM
-    const time = d.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-    return `${date}<br>${time}`; // HTML line break for UI display
-  } catch {
-    return isoString;
-  }
 }
 
 function escapeHtml(str) {
@@ -1658,35 +1271,56 @@ function escapeHtml(str) {
 }
 
 function generateReportHash(report) {
-  // Simple hash function for authenticity
-  const data = `${report.id}${report.created_at}${report.user_id || ''}${Date.now()}`;
+  // Generate a simple hash for the report
+  const data = `${report.id}${report.created_at}${report.risk_score || 0}`;
   let hash = 0;
   for (let i = 0; i < data.length; i++) {
     const char = data.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
+    hash = hash & hash;
   }
   return Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-
 function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
+  const toast = document.getElementById('toast');
+  if (!toast) return;
 
-  const toast = document.createElement('div');
-  toast.className = `toast toast--${type}`;
   toast.textContent = message;
-  container.appendChild(toast);
+  toast.className = `toast toast--${type}`;
+  toast.style.display = 'block';
 
   setTimeout(() => {
-    toast.classList.add('removing');
-    toast.addEventListener('animationend', () => toast.remove());
-  }, 4000);
+    toast.style.display = 'none';
+  }, 3000);
 }
 
-// ── Cleanup on page unload ────────────────────────────────────────────────────
-window.addEventListener('beforeunload', () => {
-  if (snapshotUnsubscribe) snapshotUnsubscribe();
-});
+function hideToast() {
+  const toast = document.getElementById('toast');
+  if (toast) toast.style.display = 'none';
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  RISK FACTOR MODAL
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+function showRiskFactorModal() {
+  const overlay = document.getElementById('risk-modal-overlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function hideRiskFactorModal() {
+  const overlay = document.getElementById('risk-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkAuthAndInit);
+} else {
+  checkAuthAndInit();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  END OF DASHBOARD.JS
+// ═══════════════════════════════════════════════════════════════════════════════

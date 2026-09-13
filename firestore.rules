@@ -175,6 +175,30 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ── SEC WATCHLIST COLLECTION ────────────────────────────────────────────────
+    // Read-only SEC advisories data for threat intelligence
+    match /sec_watchlist/{docId} {
+      // Admins can read all SEC watchlist data
+      allow read: if isAdmin();
+      
+      // No direct writes from client - managed by backend scraper
+      allow write: if false;
+    }
+
+    // ── TRAINING CORPUS COLLECTION ──────────────────────────────────────────────
+    // AI training data - anonymized reports for model training
+    match /training_corpus/{docId} {
+      // Admins can read all training data
+      allow read: if isAdmin();
+      
+      // Only experts/admins can create entries (via backend when resolving reports)
+      allow create: if (isExpert() || isAdmin())
+                       && request.resource.data.keys().hasAll(['anonymized_text', 'classification', 'created_at']);
+      
+      // No updates or deletes allowed
+      allow update, delete: if false;
+    }
+
     // ── DEFAULT: DENY ALL ────────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;

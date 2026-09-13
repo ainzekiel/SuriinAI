@@ -49,6 +49,7 @@ async function initAdminSettings(user, role) {
   setupChangePasswordForm(user);
   setupThemeToggle(user, db);
   setupSystemConfig(db, user.uid);
+  setupIntelligenceSettings(db, user.uid);
 
   // Fetch timestamps + profile fields from Firestore
   if (db) {
@@ -558,6 +559,117 @@ function setupSystemConfig(db, adminUid) {
     aiThresholdSlider.addEventListener('change', (e) => {
       const value = parseInt(e.target.value, 10);
       saveConfig({ aiConfidenceThreshold: value });
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  INTELLIGENCE & PRIVACY SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function setupIntelligenceSettings(db, adminUid) {
+  if (!db) return;
+
+  const syncBtn = document.getElementById('btn-sync-sec');
+  const syncStatus = document.getElementById('sync-status');
+  const syncMessage = document.getElementById('sync-message');
+  const telemetryToggle = document.getElementById('telemetry-toggle');
+  const telemetryWrapper = document.getElementById('telemetry-toggle-wrapper');
+
+  // SEC Sync Button Handler
+  if (syncBtn) {
+    syncBtn.addEventListener('click', async () => {
+      try {
+        syncBtn.disabled = true;
+        syncBtn.innerHTML = '<span>⏳</span><span>Syncing...</span>';
+        if (syncStatus) {
+          syncStatus.style.display = 'block';
+          syncStatus.style.background = 'rgba(62, 207, 207, 0.1)';
+          syncStatus.style.borderColor = 'rgba(62, 207, 207, 0.3)';
+          syncMessage.textContent = 'Triggering SEC database sync...';
+        }
+
+        const auth = window.__suriinAuth;
+        if (!auth?.user) {
+          throw new Error('Not authenticated');
+        }
+
+        const token = await auth.user.getIdToken();
+        const response = await fetch('/api/admin/sync-sec-watchlist', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Sync failed');
+        }
+
+        if (syncStatus) {
+          syncStatus.style.background = 'rgba(34, 197, 94, 0.1)';
+          syncStatus.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+          syncMessage.textContent = `✅ ${data.message || 'Sync initiated successfully'}`;
+        }
+        showAdminToast('SEC database sync initiated', 'success');
+
+      } catch (err) {
+        console.error('[SuriinAI AdminSettings] SEC sync error:', err);
+        showAdminToast('Failed to sync SEC database: ' + err.message, 'error');
+        if (syncStatus) {
+          syncStatus.style.background = 'rgba(239, 68, 68, 0.1)';
+          syncStatus.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+          syncMessage.textContent = '❌ Sync failed: ' + err.message;
+        }
+      } finally {
+        syncBtn.disabled = false;
+        syncBtn.innerHTML = '<span>↻</span><span>Sync SEC Database Now</span>';
+      }
+    });
+  }
+
+  // Telemetry Toggle Handler
+  if (telemetryWrapper && telemetryToggle) {
+    // Load current preference
+    db.collection('system_config').doc('global_settings').get()
+      .then((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          telemetryToggle.checked = data.autoThreatTelemetry !== false; // default ON
+        }
+      })
+      .catch((err) => {
+        console.error('[SuriinAI AdminSettings] Error loading telemetry preference:', err);
+      });
+
+    // Toggle click handler
+    telemetryWrapper.addEventListener('click', (e) => {
+      e.preventDefault();
+      telemetryToggle.checked = !telemetryToggle.checked;
+      telemetryToggle.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    // Change handler
+    telemetryToggle.addEventListener('change', async (e) => {
+      try {
+        await db.collection('system_config').doc('global_settings').update({
+          autoThreatTelemetry: e.target.checked,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: adminUid
+        });
+        showAdminToast(`Automated threat telemetry ${e.target.checked ? 'enabled' : 'disabled'}`, 'success');
+      } catch (err) {
+        console.error('[SuriinAI AdminSettings] Error saving telemetry preference:', err);
+        showAdminToast('Failed to save telemetry preference', 'error');
+        // Revert toggle
+        telemetryToggle.checked = !e.target.checked;
+      }
     });
   }
 }

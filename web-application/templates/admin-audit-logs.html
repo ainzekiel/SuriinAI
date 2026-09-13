@@ -109,7 +109,7 @@
             <span class="sidebar-link__icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </span>
-            <span class="sidebar-link__text">User Management</span>
+            <span class="sidebar-link__text">Expert Management</span>
           </a>
           <a href="/admin-analytics" class="sidebar-link" id="nav-analytics">
             <span class="sidebar-link__icon">
@@ -122,6 +122,12 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             </span>
             <span class="sidebar-link__text">Audit Logs</span>
+          </a>
+          <a href="/admin-intelligence" class="sidebar-link" id="nav-intelligence">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1M6.343 4.343l-.707-.707M18.364 4.343l.707-.707M4 12h1M20 12h1M12 20v1"/><circle cx="12" cy="12" r="4"/></svg>
+            </span>
+            <span class="sidebar-link__text">Threat Intelligence</span>
           </a>
           <div class="sidebar-divider"></div>
           <a href="/admin-settings" class="sidebar-link" id="nav-settings">
@@ -139,8 +145,22 @@
         <h1 class="dashboard-title">Audit Logs</h1>
         <p class="dashboard-subtitle">Track system-altering actions by administrators and experts.</p>
 
-        <!-- Filters -->
-        <div style="padding: var(--space-md) 0; display: flex; gap: var(--space-md); flex-wrap: wrap;">
+        <!-- Action Bar with Search and Filters -->
+        <div style="padding: var(--space-md) 0; display: flex; justify-content: flex-start; align-items: center; gap: var(--space-md); flex-wrap: wrap;">
+          <!-- Search Input -->
+          <div class="audit-search-wrapper" style="position: relative; display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; color: var(--clr-text-muted); pointer-events: none;">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <input type="text" id="search-logs" class="form-input" placeholder="Search logs..." style="padding-left: 40px; max-width: 280px; width: 280px;">
+          </div>
+          <!-- Date Range Picker -->
+          <div class="date-range-wrapper" style="display: flex; align-items: center; gap: 8px;">
+            <input type="date" id="filter-start-date" class="form-input date-picker" style="width: 140px; padding: 8px 12px; background: var(--clr-bg-input, #1A1928); border: 1px solid var(--clr-border); color: var(--clr-text-primary); border-radius: var(--radius-sm); font-size: 13px;">
+            <span style="color: var(--clr-text-muted);">to</span>
+            <input type="date" id="filter-end-date" class="form-input date-picker" style="width: 140px; padding: 8px 12px; background: var(--clr-bg-input, #1A1928); border: 1px solid var(--clr-border); color: var(--clr-text-primary); border-radius: var(--radius-sm); font-size: 13px;">
+          </div>
           <select id="filter-role" class="role-select" style="width: auto; min-width: 140px;">
             <option value="">All Roles</option>
             <option value="admin">Admin</option>
@@ -152,9 +172,7 @@
             <option value="REACTIVATE_USER">Reactivate User</option>
             <option value="ROLE_CHANGE">Role Change</option>
             <option value="CLAIM_REPORT">Claim Report</option>
-            <option value="REVIEW_REPORT">Review Report</option>
-            <option value="DISMISS_REPORT">Dismiss Report</option>
-            <option value="REOPEN_INVESTIGATION">Reopen Investigation</option>
+            <option value="RESOLVE_REPORT">Resolve Report</option>
           </select>
         </div>
 
@@ -162,7 +180,14 @@
         <section class="reports-section">
           <div class="reports-header">
             <h2 class="reports-header__title">System Activity Log</h2>
-            <span class="reports-header__count" id="audit-count">0 entries</span>
+            <div style="display: flex; align-items: center; gap: var(--space-md);">
+              <span class="reports-header__count" id="audit-count">0 entries</span>
+              <!-- Export Button inside table header -->
+              <button class="btn btn--ghost btn--sm" id="btn-export-pdf" style="display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.2);">
+                <span>📥</span>
+                <span>Export to PDF</span>
+              </button>
+            </div>
           </div>
 
           <div style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
@@ -191,11 +216,98 @@
               <p class="empty-state__desc">System actions will be logged here as admins and experts perform operations.</p>
             </div>
           </div>
+
+          <!-- Pagination -->
+          <div class="pagination-footer" id="audit-pagination" style="display: none; justify-content: center; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--clr-border);">
+            <button class="btn btn--ghost btn--sm" id="audit-pagination-prev" style="display: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="m15 18-6-6 6-6"/></svg>
+              Previous
+            </button>
+            <div id="audit-pagination-numbers" style="display: flex; gap: 4px; align-items: center;"></div>
+            <button class="btn btn--ghost btn--sm" id="audit-pagination-next" style="display: none;">
+              Next
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
         </section>
+
+        <!-- Forensic Event Details Drawer -->
+        <div id="event-drawer-overlay" aria-hidden="true"></div>
+        <aside id="event-drawer" aria-hidden="true">
+          <div class="event-drawer__header">
+            <div>
+              <h3 class="event-drawer__title">Forensic Event Details</h3>
+              <p class="event-drawer__subtitle" id="event-drawer-subtitle">Review event metadata and impact</p>
+            </div>
+            <button id="event-drawer-close" class="event-drawer__close" aria-label="Close drawer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+
+          <!-- Standard Fields -->
+          <div class="event-drawer__section">
+            <div class="event-drawer__section-title">Event Information</div>
+            <div class="event-drawer__kv">
+              <span class="event-drawer__k">Event ID</span>
+              <span class="event-drawer__v" id="event-id" style="font-family: monospace;">—</span>
+            </div>
+            <div class="event-drawer__kv">
+              <span class="event-drawer__k">Timestamp (UTC)</span>
+              <span class="event-drawer__v" id="event-timestamp">—</span>
+            </div>
+            <div class="event-drawer__kv">
+              <span class="event-drawer__k">Actor Email</span>
+              <span class="event-drawer__v" id="event-actor">—</span>
+            </div>
+            <div class="event-drawer__kv">
+              <span class="event-drawer__k">Action Type</span>
+              <span class="event-drawer__v" id="event-action">—</span>
+            </div>
+          </div>
+
+          <!-- Network Footprint -->
+          <div class="event-drawer__section">
+            <div class="event-drawer__section-title">Network Footprint</div>
+            <div class="event-drawer__kv">
+              <span class="event-drawer__k">IP Address</span>
+              <span class="event-drawer__v">—</span>
+            </div>
+            <div class="event-drawer__kv">
+              <span class="event-drawer__k">User-Agent</span>
+              <span class="event-drawer__v">—</span>
+            </div>
+          </div>
+
+          <!-- Event Impact Summary -->
+          <div class="event-drawer__section">
+            <div class="event-drawer__section-title">Event Impact Summary</div>
+            <div class="event-drawer__impact" id="event-impact-text">
+              Loading impact analysis...
+            </div>
+          </div>
+
+          <!-- Raw Payload - Collapsible -->
+          <div class="event-drawer__section">
+            <details class="forensic-details" style="background: rgba(17, 24, 39, 0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); overflow: hidden;">
+              <summary style="padding: var(--space-md) var(--space-lg); cursor: pointer; font-weight: 500; color: var(--clr-text-primary); display: flex; align-items: center; gap: 8px; user-select: none; transition: background 0.2s; list-style: none;">
+                <span style="font-size: 14px;">🔒</span>
+                <span>View Advanced Forensic Data (JSON)</span>
+                <span style="margin-left: auto; font-size: 12px; color: var(--clr-text-muted); transition: transform 0.2s;">▼</span>
+              </summary>
+              <div style="padding: 0 var(--space-lg) var(--space-lg);">
+                <pre class="code-block" style="background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: var(--space-md); font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px; overflow-x: auto; color: #e6edf3; margin: 0;"><code id="event-payload">{}</code></pre>
+              </div>
+            </details>
+          </div>
+        </aside>
 
       </main>
     </div>
   </div>
+
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>

@@ -137,21 +137,24 @@ function showModalToast(message, type = 'info') {
 let resolvedReports = [];
 let resolvedCurrentPage = 1;
 const resolvedPerPage = 10;
-const currentArchiveTab = 'resolved';
+let currentResolvedTab = 'my'; // 'my' | 'all'
 let resolvedSortMode = 'newest';
 let resolvedVerdictFilter = 'all';
+let currentExpertId = null;
 
 window.addEventListener('suriin:auth-ready', (e) => {
-  const { role } = e.detail;
+  const { role, user } = e.detail;
 
   if (role !== 'expert') {
     window.location.href = getRoleHome(role);
     return;
   }
 
+  currentExpertId = user.uid;
   ensureOverlayHidden();
   setupModal();
   setupResolvedFilters();
+  setupResolvedTabs();
   loadResolvedReports();
 });
 
@@ -212,6 +215,77 @@ function setupResolvedFilters() {
   }
 }
 
+function setupResolvedTabs() {
+  const tabMy = document.getElementById('tab-my-resolved');
+  const tabAll = document.getElementById('tab-all-resolved');
+
+  if (tabMy) {
+    tabMy.addEventListener('click', () => switchResolvedTab('my'));
+  }
+  if (tabAll) {
+    tabAll.addEventListener('click', () => switchResolvedTab('all'));
+  }
+}
+
+function switchResolvedTab(tab) {
+  if (tab !== 'my' && tab !== 'all') return;
+  currentResolvedTab = tab;
+  resolvedCurrentPage = 1;
+
+  const tabMy = document.getElementById('tab-my-resolved');
+  const tabAll = document.getElementById('tab-all-resolved');
+
+  if (tab === 'my') {
+    // Activate My Resolved Cases tab
+    if (tabMy) {
+      tabMy.classList.add('active');
+      tabMy.style.color = 'var(--clr-accent)';
+      tabMy.style.borderBottomColor = 'var(--clr-accent)';
+      // Add glow effect
+      let glow = tabMy.querySelector('.tab-glow');
+      if (!glow) {
+        glow = document.createElement('span');
+        glow.className = 'tab-glow';
+        glow.style.cssText = 'position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: var(--clr-accent); box-shadow: 0 0 10px var(--clr-accent), 0 0 20px var(--clr-accent);';
+        tabMy.appendChild(glow);
+      }
+    }
+    // Deactivate All tab
+    if (tabAll) {
+      tabAll.classList.remove('active');
+      tabAll.style.color = 'var(--clr-text-muted)';
+      tabAll.style.borderBottomColor = 'transparent';
+      const glow = tabAll.querySelector('.tab-glow');
+      if (glow) glow.remove();
+    }
+  } else {
+    // Activate All Resolved Cases tab
+    if (tabAll) {
+      tabAll.classList.add('active');
+      tabAll.style.color = 'var(--clr-accent)';
+      tabAll.style.borderBottomColor = 'var(--clr-accent)';
+      // Add glow effect
+      let glow = tabAll.querySelector('.tab-glow');
+      if (!glow) {
+        glow = document.createElement('span');
+        glow.className = 'tab-glow';
+        glow.style.cssText = 'position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: var(--clr-accent); box-shadow: 0 0 10px var(--clr-accent), 0 0 20px var(--clr-accent);';
+        tabAll.appendChild(glow);
+      }
+    }
+    // Deactivate My tab
+    if (tabMy) {
+      tabMy.classList.remove('active');
+      tabMy.style.color = 'var(--clr-text-muted)';
+      tabMy.style.borderBottomColor = 'transparent';
+      const glow = tabMy.querySelector('.tab-glow');
+      if (glow) glow.remove();
+    }
+  }
+
+  renderResolvedTable();
+}
+
 function renderResolutionHistory(_entries) {
 }
 
@@ -225,8 +299,17 @@ function renderResolvedTable() {
 
   if (!tbody) return;
 
+  // Apply tab filter (My Resolved Cases vs All Resolved Cases)
+  let filteredReports = resolvedReports;
+  if (currentResolvedTab === 'my' && currentExpertId) {
+    filteredReports = resolvedReports.filter(r => {
+      const resolvedBy = r.reviewedBy || r.resolved_by_uid || r.reviewed_by || '';
+      return resolvedBy === currentExpertId;
+    });
+  }
+
   // Apply verdict filter
-  let currentReports = resolvedReports.filter(r => {
+  let currentReports = filteredReports.filter(r => {
     if (resolvedVerdictFilter === 'all') return true;
     const v = String(r.expert_verdict || r.expertVerdict || '').trim().toLowerCase();
     if (resolvedVerdictFilter === 'safe') return v === 'safe' || v === 'verified safe';

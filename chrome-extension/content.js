@@ -94,19 +94,165 @@ function initContentScript() {
     if (message?.action === 'START_AUTO_SCAN' || message?.action === 'STOP_AUTO_SCAN') {
       _clearSuriinScanUi({ clearQueue: true });
     }
-    // Always return true when using async sendResponse so the channel stays open
-    let responded = false;
-    const safeSendResponse = (payload) => {
-      if (responded) return;
-      responded = true;
-      try {
-        sendResponse(payload);
-      } catch { }
-    };
-    Promise.resolve(handleMessage(message, safeSendResponse)).catch((e) => {
-      safeSendResponse({ success: false, error: e?.message || String(e) });
-    });
-    return true;
+
+    // Synchronous handling - sendResponse must be called immediately on every path
+    try {
+      switch (message.action) {
+        case 'EXTRACT_TEXT': {
+          const text = extractText(message.mode || 'highlight');
+          sendResponse({
+            success: true,
+            text,
+            charCount: text.length,
+            wordCount: text.trim().split(/\s+/).filter(Boolean).length,
+            sourceUrl: window.location.href,
+            pageTitle: document.title
+          });
+          break;
+        }
+
+        case 'PING': {
+          sendResponse({ success: true, ready: true });
+          break;
+        }
+
+        case 'GET_WEBAPP_AUTH_STATE': {
+          const isAuth = computeWebAppAuthState();
+          let uid = '';
+          let role = 'user';
+          try {
+            uid = sessionStorage.getItem('suriin_cached_uid') || '';
+            role = sessionStorage.getItem('suriin_cached_role') || 'user';
+            if (!role || role === 'user') {
+              if (uid) {
+                const profileRaw = sessionStorage.getItem(`suriin_profile_${uid}`);
+                if (profileRaw) {
+                  const parsed = JSON.parse(profileRaw);
+                  if (parsed && parsed.role) role = parsed.role;
+                }
+              }
+            }
+          } catch (e) {}
+          if (__suriinCapturedRole) {
+            role = __suriinCapturedRole;
+          }
+          sendResponse({
+            success: true,
+            isAuthenticated: isAuth,
+            uid,
+            role,
+            currentPage: window.location.pathname
+          });
+          break;
+        }
+
+        case 'SCAN_PAGE_AUTO': {
+          try {
+            startAutoScanObserver();
+            sendResponse({
+              success: true,
+              message: 'Auto-scan observer started.',
+              active: _autoScanObserverActive
+            });
+          } catch (e) {
+            sendResponse({ success: false, error: e?.message || 'Failed to start auto-scan' });
+          }
+          break;
+        }
+
+        case 'SCAN_CURRENT_CHAT': {
+          const onlyVisible = message.opts?.onlyVisible !== false;
+          const threads = getActiveChatThreads({ onlyVisible });
+          resetSuriinScanState(threads);
+          // Two-phase pattern: acknowledge immediately, store results via chrome.storage
+          const scanId = `scan_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+          // Start scan asynchronously (fire and forget)
+          _runChatScanAsync(scanId, message).catch(err => {
+            console.error('[SuriinAI] SCAN_CURRENT_CHAT async error:', err);
+            chrome.storage.local.set({
+              [`suriin_scan_result_${scanId}`]: {
+                success: false,
+                error: err?.message || String(err),
+                timestamp: Date.now()
+              }
+            });
+          });
+
+          // Return scanId immediately - popup will poll for results
+          sendResponse({
+            success: true,
+            scanId,
+            status: 'started',
+            message: 'Chat scan started. Use scanId to poll for results.'
+          });
+          break;
+        }
+
+        case 'GET_SCAN_RESULT': {
+          // Poll for scan results by scanId
+          const scanId = message.scanId;
+          if (!scanId) {
+            sendResponse({ success: false, error: 'No scanId provided' });
+            break;
+          }
+
+          chrome.storage.local.get([`suriin_scan_result_${scanId}`], (result) => {
+            const data = result[`suriin_scan_result_${scanId}`];
+            if (data) {
+              sendResponse(data);
+            } else {
+              sendResponse({ success: false, status: 'pending', message: 'Scan still in progress' });
+            }
+          });
+          return true; // Async: need to wait for storage.get
+        }
+
+        case 'APPLY_CHAT_HIGHLIGHTS': {
+          try {
+            applyChatHighlightMarks(message.marks);
+            sendResponse({ success: true });
+          } catch (e) {
+            sendResponse({ success: false, error: e?.message || String(e) });
+          }
+          break;
+        }
+
+        case 'HIGHLIGHT_RISK': {
+          try {
+            if (message.results && Array.isArray(message.results)) {
+              message.results.forEach(r => {
+                if (r.status !== 'safe') {
+                  highlightAndInjectUI(r.matchedText, r);
+                }
+              });
+            }
+            sendResponse({ success: true });
+          } catch (e) {
+            sendResponse({ success: false, error: e?.message || String(e) });
+          }
+          break;
+        }
+
+        case 'CLEAR_SCAN_UI': {
+          try {
+            _clearSuriinScanUi({ clearQueue: true });
+            sendResponse({ success: true });
+          } catch (e) {
+            sendResponse({ success: false, error: e?.message || String(e) });
+          }
+          break;
+        }
+
+        default:
+          sendResponse({ success: false, error: `Unknown action: ${message.action}` });
+      }
+    } catch (e) {
+      console.error('[SuriinAI] Message handler error:', e);
+      sendResponse({ success: false, error: e?.message || String(e) });
+    }
+
+    // Return undefined for synchronous handling (only GET_SCAN_RESULT returns true)
   });
 
   // ── Monitor Web App Authentication ──────────────────────────────────────────
@@ -138,19 +284,46 @@ function initContentScript() {
 
 function extractCurrentChatSnapshot(opts = {}) {
   const onlyVisible = opts.onlyVisible !== false;
-  const limitPerThread = Number.isFinite(opts.limitPerThread) ? Math.max(1, Math.floor(opts.limitPerThread)) : 50;
 
-  const threads = getActiveChatThreads({ onlyVisible });
-  if (!threads.length) return '';
+  // Primary selectors for chat text as requested
+  const primarySelectors = [
+    'div[dir="auto"]',
+    '.x1gslo9b',
+    'div[data-testid="message-text"]'
+  ];
 
   const parts = [];
-  for (const threadEl of threads) {
-    const bubbles = getChatBubblesInThread(threadEl, { onlyVisible, limit: limitPerThread });
-    for (const bubbleEl of bubbles) {
-      const t = extractChatBubbleText(bubbleEl);
-      if (t) parts.push(t);
+  const seenTexts = new Set();
+
+  for (const sel of primarySelectors) {
+    try {
+      const nodes = document.querySelectorAll(sel);
+      for (const node of nodes) {
+        // Skip if not visible (when onlyVisible is true)
+        if (onlyVisible && !_isElementVisible(node)) continue;
+
+        const text = (node.textContent || '').trim();
+
+        // Skip empty or too short
+        if (!text || text.length < 2) continue;
+
+        // Filter out metadata safely - skip but don't break loop
+        if (_isMetadataOrAttachmentText(text)) continue;
+
+        // Deduplicate
+        if (seenTexts.has(text)) continue;
+        seenTexts.add(text);
+
+        parts.push(text);
+        // NOTE: DO NOT skip nodes with data-suriin-checked; only use that for overlays, not extraction.
+
+      }
+    } catch (e) {
+      console.warn('[SuriinAI] extractCurrentChatSnapshot selector error:', sel, e);
+      continue; // Don't break loop on error
     }
   }
+
   return parts.join('\n').replace(/\s+/g, ' ').trim();
 }
 
@@ -165,18 +338,44 @@ const _SURIIN_CHAT_THREAD_SELECTORS = [
 ];
 
 const _SURIIN_CHAT_BUBBLE_SELECTORS = [
+  // Standard ARIA roles
   '[role="message"]',
   '[role="row"]',
   '[role="listitem"]',
-  '[data-testid*="message" i]',
-  '[data-scope*="message" i]',
+  // Facebook/Messenger test IDs
+  '[data-testid="message-text"]',
+  '[data-testid="message-container"]',
+  '[data-testid="message-group"]',
+  '[data-scope="messages" i]',
+  '[data-scope="message" i]',
+  // Facebook obfuscated classes (common patterns)
+  '.x1gslo9b',  // Message bubble wrapper
+  '.x78zum5.x1cy8zhl',  // Flex layout message
+  '.x1n2onr6.x1vjfegm',  // Another common message container
+  // NOTE: Generic selectors like [class*="message" i], .message-container,
+  // .chat-message were REMOVED — they match wrapper containers that hold
+  // ALL messages, causing _dedupeByContainment to collapse everything into
+  // a single element ("1 messages scanned").
+  // Messenger specific
+  '[data-suriin-messenger-thread-root] [role="row"]',
+  // Fallback: any div with message-like children
+  '[data-pagelet="ChatTab"] [role="row"]',
 ];
 
 const _SURIIN_CHAT_TEXT_ZONE_SELECTORS = [
   '[dir="auto"]',
   'span[dir="auto"]',
+  // Facebook message text specific
+  '[data-testid="message-text"]',
   '[data-ad-preview="message"]',
   '[data-ad-comet-preview="message"]',
+  // Messenger specific text containers
+  '.x1iyjqo2',  // Common text wrapper class
+  '.x193iq5w',  // Another text container
+  // Generic
+  '.message-text',
+  '.message-content',
+  '[class*="text" i][class*="message" i]',
 ];
 
 var _activeSuriinInlineClose = null;
@@ -235,6 +434,13 @@ function _isMetadataOrAttachmentText(text) {
   if (/\byou reacted to\b/i.test(t) || /\breacted to your message\b/i.test(t)) return true;
   // Bare attachment/file-name style text
   if (/^[\w\s().-]+\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|png|jpe?g|gif|webp|mp4|mov|mp3|wav)$/i.test(t)) return true;
+  // Facebook file/document sharing bubble phrases
+  if (/^(sent a file|sent an image|sent a photo|sent a video|sent a document|sent a voice message|sent an audio|sent a sticker|shared a link|sent a gif)$/i.test(t)) return true;
+  if (/\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|png|jpe?g|gif|webp|mp4|mov|mp3|wav)(\s|$)/i.test(t) && t.length < 200) {
+    // If the text is mostly a filename with extension and very little else, skip it
+    const withoutFilename = t.replace(/[\w\s().-]+\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|png|jpe?g|gif|webp|mp4|mov|mp3|wav)/gi, '').trim();
+    if (withoutFilename.length < 10) return true;
+  }
   return false;
 }
 
@@ -413,7 +619,7 @@ function _getActiveChatSurfaceRoots(opts = {}) {
   const onlyVisible = opts.onlyVisible !== false;
   const roots = [];
   const seen = new Set();
-  if (_isFacebookHost()) {
+  if (_isFacebookHost() && !_isMessengerHost()) {
     const fbChatRoots = _getActiveFacebookChatboxRoots({ onlyVisible });
     if (fbChatRoots.length) return fbChatRoots;
   }
@@ -480,40 +686,66 @@ function _closeActiveSuriinInlineModal() {
     for (const [, co] of _containerOverlays) {
       co.modalOpen = false;
       co.hasShownOnce = false;
+      // Reset overlay visibility for next scan
+      if (co.overlayEl) {
+        co.overlayEl.style.removeProperty('display');
+        co.overlayEl.style.removeProperty('visibility');
+      }
     }
   } catch { }
 }
 
-function _clearSuriinScanUi(opts = {}) {
-  _closeActiveSuriinInlineModal();
+
+function resetSuriinScanState(targetThreads = null) {
+  const scopeEls = Array.isArray(targetThreads) ? targetThreads : [document];
+
+  // Remove overlays, icons, highlights within scoped elements
   try {
-    Array.from(_containerOverlays.keys()).forEach((el) => _destroyContainerOverlay(el));
-  } catch { }
-  try {
-    document.querySelectorAll('[data-suriin-bubble-icon="1"], [data-suriin-overlay="bubble-modal"]').forEach((el) => el.remove());
-  } catch { }
-  try {
-    document.querySelectorAll('[data-suriin-risk], [data-suriin-underlined]').forEach((el) => {
-      el.removeAttribute('data-suriin-risk');
-      el.removeAttribute('data-suriin-underlined');
-      el.style.removeProperty('text-decoration-line');
-      el.style.removeProperty('text-decoration-color');
-      el.style.removeProperty('text-decoration-thickness');
-      el.style.removeProperty('text-underline-offset');
+    scopeEls.forEach(scope => {
+      scope.querySelectorAll('[data-suriin-overlay="bubble-modal"], [data-suriin-overlay="modal"], [data-suriin-bubble-icon="1"], [data-suriin-overlay="icon"]').forEach(el => el.remove());
+      scope.querySelectorAll('[data-suriin-risk], [data-suriin-underlined], [data-suriin-checked], [data-suriin-scan-hash], [data-suriin-bubble-id], [data-suriin-bubble-key]').forEach(el => {
+        el.removeAttribute('data-suriin-risk');
+        el.removeAttribute('data-suriin-underlined');
+        el.removeAttribute('data-suriin-checked');
+        el.removeAttribute('data-suriin-scan-hash');
+        el.removeAttribute('data-suriin-bubble-id');
+        el.removeAttribute('data-suriin-bubble-key');
+        el.style.removeProperty('text-decoration-line');
+        el.style.removeProperty('text-decoration-color');
+        el.style.removeProperty('text-decoration-thickness');
+        el.style.removeProperty('text-underline-offset');
+      });
+      // Reset chat thread scan markers so bubbles can be re-scanned
+      scope.querySelectorAll('.suriin-scanned').forEach(el => el.classList.remove('suriin-scanned'));
     });
-  } catch { }
-  if (opts.clearQueue) {
-    _suriinChatScanQueue.length = 0;
-    _suriinChatQueueStopToken++;
-    // Clear the scan cache so the next manual scan always gets a fresh API result,
-    // not a potentially stale entry from a previous scan session.
-    _suriinChatScanCache.clear();
-    try {
-      document.querySelectorAll('[data-suriin-scan-hash]')
-        .forEach(el => el.removeAttribute('data-suriin-scan-hash'));
-    } catch { }
-  }
+  } catch {}
+
+  // Reset overlay state
+  try {
+    for (const [key, co] of _containerOverlays) {
+      const shouldClear = !targetThreads || targetThreads.some(t => t.contains(co.iframe || co.modalWrapper || co.overlayEl || co.iconHost));
+      if (shouldClear) {
+        co.modalOpen = false;
+        co.hasShownOnce = false;
+        if (co.overlayEl) {
+          co.overlayEl.style.removeProperty('display');
+          co.overlayEl.style.removeProperty('visibility');
+        }
+        _containerOverlays.delete(key);
+      }
+    }
+  } catch {}
+  try { _suriinChatScanQueue && (_suriinChatScanQueue.length = 0); } catch {}
+  // Clear the scan result cache so re-scans always re-query the API.
+  // Without this, 2nd manual scan reuses stale cached results (potentially
+  // with mismatched cache keys if the threadEl changed) and shows SAFE.
+  try { _suriinChatScanCache.clear(); } catch {}
 }
+
+function _clearSuriinScanUi(opts = {}) {
+  resetSuriinScanState();
+}
+
 
 function _isElementVisible(el) {
   if (!el || !el.getBoundingClientRect) return false;
@@ -528,8 +760,10 @@ function _isElementVisible(el) {
 
 function _isLikelyChatThread(el) {
   if (!el || !(el instanceof Element)) return false;
+  if (_isMessengerHost() && !el.closest('[role="main"]')) return false;
   if (el.closest('nav, header, footer')) return false;
   if (el.closest('[role="navigation"]')) return false;
+  if (el.closest('[aria-label*="chats" i], [aria-label*="conversations" i], [aria-label*="navigation" i]')) return false;
   try { if (el.matches('[data-pagelet="FeedUnit"], [role="feed"]')) return false; } catch { }
   try {
     const zones = el.querySelectorAll('[dir="auto"]');
@@ -543,37 +777,41 @@ function _isLikelyChatThread(el) {
 
 function getActiveChatThreads(opts = {}) {
   const onlyVisible = opts.onlyVisible !== false;
+  const allThreads = opts.allThreads === true;
 
-  // ── Facebook: ALWAYS return exactly ONE chatbox root ─────────────────────────
-  // Returning multiple roots causes overlays on clean idle chatboxes and makes
-  // "Scan Current Chat" scan the wrong conversation.
+  // ── Facebook: Return ONE or ALL chatbox roots ─────────────────────────
   if (_isFacebookHost() && !_isMessengerHost()) {
-    // Priority 1 — explicit click/focus tracking (most reliable)
-    if (_activeChatThreadRoot && _activeChatThreadRoot.isConnected) {
-      if (!onlyVisible || _isElementVisible(_activeChatThreadRoot)) {
-        console.log('[SuriinAI] getActiveChatThreads(FB): active root');
+    if (!allThreads) {
+      // Priority 1 — explicit click/focus tracking (most reliable)
+      if (_activeChatThreadRoot && _activeChatThreadRoot.isConnected) {
+        if (!onlyVisible || _isElementVisible(_activeChatThreadRoot)) {
+          console.log('[SuriinAI] getActiveChatThreads(FB): active root');
+          return [_activeChatThreadRoot];
+        }
+      }
+      // Priority 2 — most recently opened chatbox tracked by _getActiveFacebookChatboxRoots
+      if (_lastOpenedFacebookChatboxRoot && _lastOpenedFacebookChatboxRoot.isConnected) {
+        if (!onlyVisible || _isElementVisible(_lastOpenedFacebookChatboxRoot)) {
+          _activeChatThreadRoot = _lastOpenedFacebookChatboxRoot;
+          console.log('[SuriinAI] getActiveChatThreads(FB): last-opened root');
+          return [_activeChatThreadRoot];
+        }
+      }
+      // Priority 3 — re-discover; pick rightmost (most recently opened)
+      const fbRoots = _getActiveFacebookChatboxRoots({ onlyVisible });
+      if (fbRoots.length) {
+        const byRight = fbRoots.slice().sort(
+          (a, b) => (b.getBoundingClientRect().right || 0) - (a.getBoundingClientRect().right || 0)
+        );
+        _activeChatThreadRoot = byRight[0];
+        console.log('[SuriinAI] getActiveChatThreads(FB): rightmost of', fbRoots.length, 'root(s)');
         return [_activeChatThreadRoot];
       }
+      return [];
+    } else {
+      // Return ALL visible Facebook chatbox roots for background auto-monitoring
+      return _getActiveFacebookChatboxRoots({ onlyVisible });
     }
-    // Priority 2 — most recently opened chatbox tracked by _getActiveFacebookChatboxRoots
-    if (_lastOpenedFacebookChatboxRoot && _lastOpenedFacebookChatboxRoot.isConnected) {
-      if (!onlyVisible || _isElementVisible(_lastOpenedFacebookChatboxRoot)) {
-        _activeChatThreadRoot = _lastOpenedFacebookChatboxRoot;
-        console.log('[SuriinAI] getActiveChatThreads(FB): last-opened root');
-        return [_activeChatThreadRoot];
-      }
-    }
-    // Priority 3 — re-discover; pick rightmost (most recently opened)
-    const fbRoots = _getActiveFacebookChatboxRoots({ onlyVisible });
-    if (fbRoots.length) {
-      const byRight = fbRoots.slice().sort(
-        (a, b) => (b.getBoundingClientRect().right || 0) - (a.getBoundingClientRect().right || 0)
-      );
-      _activeChatThreadRoot = byRight[0];
-      console.log('[SuriinAI] getActiveChatThreads(FB): rightmost of', fbRoots.length, 'root(s)');
-      return [_activeChatThreadRoot];
-    }
-    return [];
   }
 
   // ── Non-Facebook (Messenger, Twitter, Instagram, etc.) ────────────────────────
@@ -635,6 +873,11 @@ function getActiveChatThreads(opts = {}) {
         }
       }
     }
+    // If still zero roots, clear stale state
+    if (roots.length === 0) {
+      _activeChatThreadRoot = null;
+      _lastOpenedFacebookChatboxRoot = null;
+    }
   }
 
   console.log('[SuriinAI] getActiveChatThreads: found', roots.length, 'thread(s)');
@@ -642,18 +885,24 @@ function getActiveChatThreads(opts = {}) {
 }
 
 function _dedupeByContainment(elements) {
+  // Keep INNERMOST elements — when a parent and child both match,
+  // prefer the child (individual message bubble) over the parent
+  // (container holding multiple messages). This prevents wrapper
+  // containers from collapsing all messages into 1 scan result.
   const out = [];
   for (const el of elements) {
     if (!el || !(el instanceof Element)) continue;
-    let contained = false;
+    // Check if this element CONTAINS any other element in the list.
+    // If so, skip it (prefer the contained children).
+    let containsOther = false;
     for (const other of elements) {
       if (other === el) continue;
-      if (other && other.contains && other.contains(el)) {
-        contained = true;
+      if (other && el.contains && el.contains(other)) {
+        containsOther = true;
         break;
       }
     }
-    if (!contained) out.push(el);
+    if (!containsOther) out.push(el);
   }
   return out;
 }
@@ -694,46 +943,102 @@ function getChatBubblesInThread(threadEl, opts = {}) {
 
 function extractChatBubbleText(bubbleEl) {
   if (!bubbleEl) return '';
-  if (isInsideEditableContext(bubbleEl)) return '';
-  // For FB/Messenger, skip _isChatSurface on individual bubbles — they are
-  // already scoped to their thread root by getChatBubblesInThread.
-  if (!_isFacebookHost() && !_isMessengerHost() && !_isChatSurface(bubbleEl)) return '';
 
-  const pieces = [];
-  const _seenNodes = new WeakSet();
-  for (const sel of _SURIIN_CHAT_TEXT_ZONE_SELECTORS) {
-    try {
-      bubbleEl.querySelectorAll(sel).forEach((z) => {
-        if (_seenNodes.has(z)) return;
-        _seenNodes.add(z);
-        if (!_isChatTextZone(z)) return;
-        const t = (z.textContent || '').trim();
-        if (t) pieces.push(t);
-      });
-    } catch { }
+  try {
+    if (isInsideEditableContext(bubbleEl)) return '';
+    if (!_isFacebookHost() && !_isMessengerHost() && !_isChatSurface(bubbleEl)) return '';
+
+    const pieces = [];
+    const _seenNodes = new WeakSet();
+
+    // Primary selectors: div[dir="auto"] and .x1gslo9b (as requested)
+    const primarySelectors = [
+      'div[dir="auto"]',
+      '.x1gslo9b',
+      '[data-testid="message-text"]'
+    ];
+
+    for (const sel of primarySelectors) {
+      try {
+        const nodes = bubbleEl.querySelectorAll(sel);
+        for (const z of nodes) {
+          if (_seenNodes.has(z)) continue;
+          _seenNodes.add(z);
+
+          // Validate it's a chat text zone
+          if (!_isChatTextZone(z)) continue;
+
+          const t = (z.textContent || '').trim();
+          if (!t || t.length < 2) continue;
+
+          // Clean metadata filtering - skip if metadata but continue loop
+          if (_isMetadataOrAttachmentText(t)) continue;
+
+          pieces.push(t);
+        }
+      } catch (e) {
+        console.warn('[SuriinAI] Selector error:', sel, e);
+        continue; // Don't break loop on error
+      }
+    }
+
+    // Fallback: use innerText if no pieces found
+    const raw = pieces.length
+      ? pieces.join(' ')
+      : ((bubbleEl.innerText || bubbleEl.textContent || '').trim());
+
+    return sanitizeScanText(raw);
+  } catch (e) {
+    console.error('[SuriinAI] extractChatBubbleText failed:', e);
+    return ''; // Return empty on catastrophic failure
   }
-  const raw = pieces.length ? pieces.join(' ') : ((bubbleEl.innerText || bubbleEl.textContent || '').trim());
-  return sanitizeScanText(raw);
 }
 
 function _findBubblesBottomUp(containerEl, opts = {}) {
   if (!containerEl || !containerEl.querySelectorAll) return [];
-  if (!_isChatSurface(containerEl)) return [];
+  // Check if containerEl or any ancestor is a chat surface
+  let _containerInChat = _isChatSurface(containerEl);
+  if (!_containerInChat) {
+    let _anc = containerEl.parentElement;
+    for (let _d = 0; _d < 10 && _anc && _anc !== document.body; _d++, _anc = _anc.parentElement) {
+      if (_isChatSurface(_anc)) { _containerInChat = true; break; }
+    }
+  }
+  if (!_containerInChat) return [];
+
   const onlyVisible = opts.onlyVisible !== false;
   const limit = Number.isFinite(opts.limit) ? Math.max(1, Math.floor(opts.limit)) : 120;
   const textZones = [];
-  try {
-    containerEl.querySelectorAll('[dir="auto"]').forEach((z) => {
-      const text = (z.textContent || '').trim();
-      if (!text || text.length < 5) return;
-      if (!_isChatTextZone(z)) return;
-      if (onlyVisible && !_isElementVisible(z)) return;
-      textZones.push(z);
-    });
-  } catch { }
+
+  // Try multiple text zone selectors
+  for (const sel of _SURIIN_CHAT_TEXT_ZONE_SELECTORS) {
+    try {
+      containerEl.querySelectorAll(sel).forEach((z) => {
+        // Skip if already collected
+        if (textZones.some(existing => existing === z)) return;
+
+        const text = (z.textContent || '').trim();
+        if (!text || text.length < 5) return;
+
+        // Skip metadata safely without breaking loop
+        if (_isMetadataOrAttachmentText(text)) return;
+
+        if (!_isChatTextZone(z)) return;
+        if (onlyVisible && !_isElementVisible(z)) return;
+
+        textZones.push(z);
+      });
+    } catch (e) {
+      console.warn('[SuriinAI] _findBubblesBottomUp selector error:', sel, e);
+      // Continue to next selector - don't break loop
+    }
+  }
+
   if (!textZones.length) return [];
+
   const bubbles = [];
   const seen = new WeakSet();
+
   for (const zone of textZones) {
     let candidate = zone;
     for (let i = 0; i < 5; i++) {
@@ -741,142 +1046,58 @@ function _findBubblesBottomUp(containerEl, opts = {}) {
       if (!parent || parent === containerEl) break;
       try { if (parent.closest('[contenteditable], [role="textbox"], textarea, input')) break; } catch { break; }
       try {
-        const dirCount = parent.querySelectorAll('[dir="auto"]').length;
+        // Use expanded selectors for counting
+        let dirCount = 0;
+        for (const sel of _SURIIN_CHAT_TEXT_ZONE_SELECTORS) {
+          try {
+            dirCount += parent.querySelectorAll(sel).length;
+          } catch { }
+        }
         if (dirCount <= 2) { candidate = parent; } else { break; }
       } catch { break; }
     }
     if (seen.has(candidate)) continue;
     seen.add(candidate);
     if (isInsideEditableContext(candidate)) continue;
+
     const text = extractChatBubbleText(candidate);
     if (!text || text.length < 5) continue;
     bubbles.push(candidate);
     if (bubbles.length >= limit) break;
   }
+
   return bubbles;
 }
 
-// ── MESSAGE HANDLER ───────────────────────────────────────────────────────────
+// ── ASYNC SCAN HELPER ─────────────────────────────────────────────────────────
 
 /**
- * Routes incoming messages to the appropriate handler function.
- *
- * Expected message shapes:
- *   { action: 'EXTRACT_TEXT', mode: 'highlight' | 'manual' | 'auto' }
- *   { action: 'HIGHLIGHT_RISK', ranges: [...] }   ← stub for future use
- *   { action: 'PING' }                             ← connectivity check
- *
- * @param {Object} message
- * @param {Function} sendResponse - Chrome callback to return data to the sender
+ * Async scan helper for two-phase messaging pattern.
+ * Runs scan in background and stores results via chrome.storage.
  */
-async function handleMessage(message, sendResponse) {
-  switch (message.action) {
+async function _runChatScanAsync(scanId, message) {
+  const opts = message.opts || {};
+  const result = await scanCurrentChatAndHighlight(opts);
 
-    // ── Text Extraction Request ──────────────────────────────────────────────
-    case 'EXTRACT_TEXT': {
-      const text = extractText(message.mode || 'highlight');
-      sendResponse({
-        success: true,
-        text,
-        charCount: text.length,
-        wordCount: text.trim().split(/\s+/).filter(Boolean).length,
-        sourceUrl: window.location.href,
-        pageTitle: document.title
-      });
-      break;
+  // Store result for popup to retrieve
+  await chrome.storage.local.set({
+    [`suriin_scan_result_${scanId}`]: {
+      ...result,
+      success: true,
+      scanId,
+      timestamp: Date.now()
     }
+  });
 
-    // ── Connectivity Ping (used by background.js to check tab readiness) ─────
-    case 'PING': {
-      sendResponse({ success: true, ready: true });
-      break;
-    }
-
-    // ── Web App Auth State Probe (used by popup.js as a fallback) ───────────
-    case 'GET_WEBAPP_AUTH_STATE': {
-      const isAuth = computeWebAppAuthState();
-      let uid = '';
-      let role = 'user';
-      try {
-        uid = sessionStorage.getItem('suriin_cached_uid') || '';
-        role = sessionStorage.getItem('suriin_cached_role') || 'user';
-        if (!role || role === 'user') {
-          if (uid) {
-            const profileRaw = sessionStorage.getItem(`suriin_profile_${uid}`);
-            if (profileRaw) {
-              const parsed = JSON.parse(profileRaw);
-              if (parsed && parsed.role) role = parsed.role;
-            }
-          }
-        }
-      } catch (e) {}
-      // Use captured role from auth events (highest priority)
-      // Role is captured from suriin:auth-ready and suriin:role-changed events
-      if (__suriinCapturedRole) {
-        role = __suriinCapturedRole;
-      }
-      sendResponse({
-        success: true,
-        isAuthenticated: isAuth,
-        uid,
-        role,
-        currentPage: window.location.pathname
-      });
-      break;
-    }
-
-    // ── Auto-Scan: Background triggers content-side scanning + DOM injection ──
-    case 'SCAN_PAGE_AUTO': {
-      startAutoScanObserver();
-      sendResponse({ success: true, message: 'Auto-scan observer started.' });
-      break;
-    }
-
-    case 'SCAN_CURRENT_CHAT': {
-      try {
-        const summary = await scanCurrentChatAndHighlight();
-        sendResponse({ success: true, ...summary });
-      } catch (e) {
-        sendResponse({ success: false, error: e?.message || String(e) });
-      }
-      break;
-    }
-
-    case 'APPLY_CHAT_HIGHLIGHTS': {
-      try {
-        applyChatHighlightMarks(message.marks);
-        sendResponse({ success: true });
-      } catch (e) {
-        sendResponse({ success: false, error: e?.message || String(e) });
-      }
-      break;
-    }
-
-    // ── Highlight Risk: receives flagged data and injects inline UI ──────────
-    case 'HIGHLIGHT_RISK': {
-      if (message.results && Array.isArray(message.results)) {
-        message.results.forEach(r => {
-          if (r.status !== 'safe') {
-            highlightAndInjectUI(r.matchedText, r);
-          }
-        });
-      }
-      sendResponse({ success: true });
-      break;
-    }
-
-    case 'CLEAR_SCAN_UI': {
-      try {
-        _clearSuriinScanUi({ clearQueue: true });
-        sendResponse({ success: true });
-      } catch (e) {
-        sendResponse({ success: false, error: e?.message || String(e) });
-      }
-      break;
-    }
-
-    default:
-      sendResponse({ success: false, error: `Unknown action: ${message.action}` });
+  // Also notify popup/background that scan is complete
+  try {
+    chrome.runtime.sendMessage({
+      action: 'SCAN_COMPLETE',
+      scanId,
+      result
+    });
+  } catch (e) {
+    // Extension may not be listening, ignore error
   }
 }
 
@@ -928,7 +1149,8 @@ function extractText(mode) {
       if (!selection || selection.rangeCount === 0) {
         return '';
       }
-      return selection.toString().trim();
+      // Normalize for API: replace all \r or \n with space, then trim
+      return selection.toString().replace(/[\r\n]+/g, ' ').trim();
     }
 
     // ── Manual Page Scan ──────────────────────────────────────────────────────
@@ -1370,7 +1592,7 @@ const _suriinChatScanCache = new Map();
 const _suriinChatScanQueue = [];
 let _suriinChatQueueRunning = false;
 const _suriinChatSessions = new Map();
-const _suriinBubbleUi = new WeakMap();
+const _suriinBubbleUi = new Map();
 const _SURIIN_CHAT_QUEUE_MAX = 160;
 let _suriinChatQueueStopToken = 0;
 
@@ -1412,6 +1634,40 @@ function _ensureBubbleId(bubbleEl) {
 
 function _getThreadForBubble(bubbleEl) {
   if (!bubbleEl || !(bubbleEl instanceof Element)) return null;
+  // For Facebook/Messenger: individual message rows are always small (fail _isChatSurface),
+  // so bypass that check and walk up to find the chatbox root directly.
+  if (_isFacebookHost() || _isMessengerHost()) {
+    // 1. Check for an explicit chatbox root marker first (fastest path)
+    const markedRoot = bubbleEl.closest('[data-suriin-fb-chatbox-root="1"], [data-suriin-messenger-thread-root="1"]');
+    if (markedRoot) return markedRoot;
+    // 2. Walk up through THREAD selectors
+    for (const sel of _SURIIN_CHAT_THREAD_SELECTORS) {
+      try {
+        const t = bubbleEl.closest(sel);
+        if (t) return t;
+      } catch { }
+    }
+    // 3. Walk up to first scrollable ancestor that looks like a chatbox container
+    //    (reject news feed, main page scroller, sidebar)
+    let ancestor = bubbleEl.parentElement;
+    while (ancestor && ancestor !== document.body) {
+      try {
+        // Reject elements that are clearly NOT chatbox containers
+        if (ancestor.matches('[role="feed"], [data-pagelet="FeedUnit"], [role="navigation"], nav, header, footer')) break;
+        if (ancestor.matches('[aria-label*="stories" i], [data-pagelet^="Stories"]')) break;
+        const ov = window.getComputedStyle(ancestor).overflowY;
+        if (ov === 'auto' || ov === 'scroll') {
+          // On Facebook, reject the main page scroll container (very wide)
+          const r = ancestor.getBoundingClientRect();
+          if (r.width > window.innerWidth * 0.75 && !ancestor.closest('[data-pagelet^="ChatTab"]')) break;
+          return ancestor;
+        }
+      } catch { }
+      ancestor = ancestor.parentElement;
+    }
+    return null;
+  }
+  // Non-Facebook: require the bubble to be inside a chat surface
   if (!_isChatSurface(bubbleEl)) return null;
   for (const sel of _SURIIN_CHAT_THREAD_SELECTORS) {
     try {
@@ -1496,6 +1752,14 @@ function _finishSessionIfDone(sessionId) {
 
   const threadBreakdown = _buildThreadBreakdown(s.flaggedResults || []);
 
+  // Aggregate all sec_watchlist_hits from flagged results
+  const allSecHits = [];
+  for (const r of (s.flaggedResults || [])) {
+    if (r.sec_watchlist_hits && r.sec_watchlist_hits.length > 0) {
+      allSecHits.push(...r.sec_watchlist_hits);
+    }
+  }
+
   s.resolve({
     overallStatus,
     overallScore,
@@ -1508,13 +1772,14 @@ function _finishSessionIfDone(sessionId) {
     flaggedResults: s.flaggedResults || [],
     threadBreakdown,
     worstResult: s.worstResult || null,
+    worstResultSecHits: allSecHits,
     flaggedTexts: s.flaggedTexts || []
   });
   _suriinChatSessions.delete(sessionId);
 }
 
 function _makeSessionResultEntry(result, bubbleText, bubbleId, cacheKey) {
-  const status = String(result?.status || 'safe').toLowerCase();
+  const status = String(result?.status || result?.overall_status || result?.risk_status || 'safe').toLowerCase();
   const score = Number(result?.overall_score ?? result?.score ?? (status === 'critical' ? 100 : (status === 'warning' ? 75 : 0)));
   return {
     bubbleId,
@@ -1523,7 +1788,8 @@ function _makeSessionResultEntry(result, bubbleText, bubbleId, cacheKey) {
     status,
     score: Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : 0,
     ai_scan: result?.ai_scan || null,
-    watchlist: result?.watchlist || null
+    watchlist: result?.watchlist || null,
+    sec_watchlist_hits: result?.sec_watchlist_hits || []
   };
 }
 
@@ -1576,12 +1842,79 @@ function _buildThreadBreakdown(flaggedResults) {
   return rows;
 }
 
+// Content filter patterns to exclude (timestamps, dates, system labels, file extensions)
+const _SKIP_PATTERNS = [
+  // Timestamps: 7:14 PM, 2:30 AM, 14:30, etc.
+  /^\d{1,2}:\d{2}\s*(AM|PM|am|pm)?$/,
+  // Dates: May 14, 2026 or May 14 or 14 May
+  /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(,\s*\d{4})?$/i,
+  /^\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(\s+\d{4})?$/i,
+  // System actions
+  /forwarded an image/i,
+  /sent a photo/i,
+  /sent a video/i,
+  /sent a file/i,
+  /sent a document/i,
+  /sent a voice message/i,
+  /sent an audio/i,
+  /sent a sticker/i,
+  /shared a link/i,
+  /sent a gif/i,
+  // Bare attachment names (any file extension at end of string)
+  /\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|mp4|mp3|mov|zip|rar|txt|csv|svg|webp|heic)$/i,
+  // Facebook attachment bubble text (e.g. "document.pdf 2.3 MB")
+  /^[\w\s().\-]+\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|png|jpe?g|gif|webp|mp4|mov|mp3|wav)(\s+\d+(\.\d+)?\s*(kb|mb|gb))?$/i,
+  // Laughter / reactions (HAHAHA, lol, lmao, hehe, etc.)
+  /^[ha]{4,}$/i,
+  /^(ha)+h?$/i,
+  /^(he)+h?$/i,
+  /^(hi)+h?$/i,
+  /^l+o+l+$/i,
+  /^l+m+a+o+$/i,
+  /^r+o+f+l+$/i,
+  // Pure emoji strings (Unicode emoji ranges)
+  /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}\s]+$/u,
+  // Single-word replies that are clearly not scam
+  /^(ok|okay|oo|sige|ge|yes|no|yas|yep|nope|yup|nah|true|nice|wow|grabe|talaga|hala|amen|congrats|thanks|salamat|ty|hoy|uy|ui|awit|sheesh|bruh|lods|pre|mare|pare|tol|bro|sis|lol|omg|wtf)$/i,
+];
+
+// Minimum text length to send to AI scanner — short messages are almost never scam
+const _MIN_SCAN_TEXT_LENGTH = 15;
+
+function shouldSkipText(text) {
+  if (!text || text.length < 5) return true;
+  const trimmed = text.trim();
+  // Skip very short text — not enough content for meaningful scam detection
+  if (trimmed.length < _MIN_SCAN_TEXT_LENGTH) return true;
+  for (const pattern of _SKIP_PATTERNS) {
+    if (pattern.test(trimmed)) return true;
+  }
+  // Skip if text looks like a pure file name (no sentence-like words)
+  if (_isMetadataOrAttachmentText(trimmed)) return true;
+  // Skip text that is just repeated characters (e.g. "AAAAAA", "?????")
+  if (/^(.)(\1|\s){3,}$/.test(trimmed)) return true;
+  // Skip text that looks like a username or email address only
+  if (/^[\w.@+-]+$/i.test(trimmed) && trimmed.length < 50) return true;
+  return false;
+}
+
 function enqueueChatBubbleScan(bubbleEl, opts = {}) {
   const threadEl = opts.threadEl || _getThreadForBubble(bubbleEl);
-  if (!threadEl) return null;
+  if (!threadEl) return { skipped: true, reason: 'no_thread' };
+
+  // Prevent duplicate scanning of same bubble
+  if (bubbleEl.classList.contains('suriin-scanned')) {
+    return { skipped: true, reason: 'already_scanned' };
+  }
+  bubbleEl.classList.add('suriin-scanned');
 
   const bubbleText = extractChatBubbleText(bubbleEl);
-  if (!bubbleText || bubbleText.length < 5) return null;
+  if (!bubbleText || bubbleText.length < 5) {
+    return { skipped: true, reason: 'no_text' };
+  }
+  if (shouldSkipText(bubbleText)) {
+    return { skipped: true, reason: 'filtered', text: bubbleText.substring(0, 50) };
+  }
 
   const bubbleId = _ensureBubbleId(bubbleEl);
   const cacheKey = _makeChatCacheKey(threadEl, bubbleText);
@@ -1604,7 +1937,7 @@ function enqueueChatBubbleScan(bubbleEl, opts = {}) {
 
   _suriinChatScanQueue.push({ cacheKey, bubbleId, bubbleEl, threadEl, bubbleText, sessionId });
   void _runChatScanQueue();
-  return cacheKey;
+  return { success: true, cacheKey, bubbleId };
 }
 
 async function _runChatScanQueue() {
@@ -1692,12 +2025,35 @@ function applyBubbleRiskUI(bubbleEl, scanResult, bubbleText) {
   if (!bubbleEl || !(bubbleEl instanceof Element)) return;
   // For FB/Messenger, individual message rows fail the size-check in _isChatSurface,
   // so bypass it — bubbles are already scoped to their thread root by getChatBubblesInThread.
-  if (!_isFacebookHost() && !_isMessengerHost() && !_isChatSurface(bubbleEl)) return;
-  const status = String(scanResult?.status || '').toLowerCase();
+  // For other hosts, walk up ancestors to find a chat surface (the bubble itself may be too small).
+  if (!_isFacebookHost() && !_isMessengerHost()) {
+    let inChatSurface = _isChatSurface(bubbleEl);
+    if (!inChatSurface) {
+      let ancestor = bubbleEl.parentElement;
+      for (let i = 0; i < 10 && ancestor && ancestor !== document.body; i++, ancestor = ancestor.parentElement) {
+        if (_isChatSurface(ancestor)) { inChatSurface = true; break; }
+      }
+    }
+    if (!inChatSurface) return;
+  }
+  const status = String(scanResult?.threat_level || scanResult?.status || 'safe').toLowerCase();
+  let label = status.toUpperCase();
+  let color = 'green';
+  if (status === 'critical') {
+    color = 'red';
+  } else if (status === 'warning') {
+    color = 'orange';
+  }
+  // Example: update label and icon color for modal UI
+  if (bubbleEl && bubbleEl.querySelector('[data-suriin-overlay="bubble-modal"] .modal-label')) {
+    const labelEl = bubbleEl.querySelector('[data-suriin-overlay="bubble-modal"] .modal-label');
+    labelEl.textContent = label;
+    labelEl.style.color = color;
+  }
   if (status !== 'warning' && status !== 'critical') return;
 
   const isCritical = status === 'critical';
-  const color = isCritical ? 'rgba(239,68,68,0.9)' : 'rgba(251,191,36,0.9)';
+  const underlineColor = isCritical ? 'rgba(239,68,68,0.9)' : 'rgba(251,191,36,0.9)';
 
   if (!bubbleEl.dataset.suriinPrevPosition) {
     bubbleEl.dataset.suriinPrevPosition = bubbleEl.style.position || '';
@@ -1710,7 +2066,7 @@ function applyBubbleRiskUI(bubbleEl, scanResult, bubbleText) {
       if (isInsideEditableContext(tz) || (tz !== bubbleEl && !_isChatTextZone(tz))) continue;
       tz.dataset.suriinUnderlined = '1';
       tz.style.setProperty('text-decoration-line', 'underline', 'important');
-      tz.style.setProperty('text-decoration-color', color, 'important');
+      tz.style.setProperty('text-decoration-color', underlineColor, 'important');
       tz.style.setProperty('text-decoration-thickness', '2px', 'important');
       tz.style.setProperty('text-underline-offset', '3px', 'important');
     }
@@ -1751,9 +2107,16 @@ function applyBubbleRiskUI(bubbleEl, scanResult, bubbleText) {
     bubbleEl.appendChild(icon);
   }
 
-  icon.innerHTML = isCritical
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  const _rKey = _makeReportedKey(bubbleEl, bubbleText || '');
+  if (_inlineSuccessByReportedKey.has(_rKey)) {
+    _applyGreenShield({ iconHost: icon });
+  } else {
+    icon.innerHTML = isCritical
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    icon.style.setProperty('border-color', color, 'important');
+    icon.style.setProperty('box-shadow', '0 2px 8px rgba(0,0,0,0.45)', 'important');
+  }
 
   if (!_suriinBubbleUi.has(bubbleEl)) {
     _suriinBubbleUi.set(bubbleEl, { icon, modalContainer: null, ensureLoaded: null, scanResult: null, bubbleText: null });
@@ -1918,43 +2281,67 @@ function applyChatHighlightMarks(marks) {
 
 async function scanCurrentChatAndHighlight(opts = {}) {
   _manualScanActive = true;
-  _clearSuriinScanUi({ clearQueue: true });
-  // Give React/SPA frameworks a tick to flush any re-renders triggered by the
-  // DOM cleanup above before we query for fresh bubble elements.
-  await new Promise(r => setTimeout(r, 80));
   const onlyVisible = opts.onlyVisible !== false;
+  const threads = getActiveChatThreads({ onlyVisible });
+  resetSuriinScanState(threads);
+
+  await new Promise(r => setTimeout(r, 80));
+
   const limitPerThread = Number.isFinite(opts.limitPerThread) ? Math.max(1, Math.floor(opts.limitPerThread)) : 60;
 
-  const threads = getActiveChatThreads({ onlyVisible });
-  if (!threads.length) {
+  try {
+
+    if (!threads.length) {
+      _manualScanActive = false;
+      return {
+        overallStatus: 'SAFE',
+        overallScore: 0,
+        totalBubblesScanned: 0,
+        threatCount: 0,
+        warningCount: 0,
+        criticalCount: 0,
+        marks: []
+      };
+    }
+
+    const sessionId = `manual_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const session = _ensureSession(sessionId);
+
+    for (const threadEl of threads) {
+      try {
+        const bubbles = getChatBubblesInThread(threadEl, { onlyVisible, limit: limitPerThread });
+        for (const bubbleEl of bubbles) {
+          try {
+            enqueueChatBubbleScan(bubbleEl, { threadEl, sessionId });
+          } catch (e) {
+            console.warn('[SuriinAI] Failed to enqueue bubble:', e);
+            // Continue with next bubble
+          }
+        }
+      } catch (e) {
+        console.warn('[SuriinAI] Failed to process thread:', e);
+        // Continue with next thread
+      }
+    }
+
+    if (session.pending === 0) {
+      _finishSessionIfDone(sessionId);
+    }
+
+    return await session.promise;
+  } catch (e) {
+    console.error('[SuriinAI] scanCurrentChatAndHighlight error:', e);
     _manualScanActive = false;
     return {
-      overallStatus: 'SAFE',
+      overallStatus: 'ERROR',
       overallScore: 0,
       totalBubblesScanned: 0,
       threatCount: 0,
       warningCount: 0,
       criticalCount: 0,
-      marks: []
+      marks: [],
+      error: e?.message || String(e)
     };
-  }
-
-  const sessionId = `manual_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-  const session = _ensureSession(sessionId);
-
-  for (const threadEl of threads) {
-    const bubbles = getChatBubblesInThread(threadEl, { onlyVisible, limit: limitPerThread });
-    for (const bubbleEl of bubbles) {
-      enqueueChatBubbleScan(bubbleEl, { threadEl, sessionId });
-    }
-  }
-
-  if (session.pending === 0) {
-    _finishSessionIfDone(sessionId);
-  }
-
-  try {
-    return await session.promise;
   } finally {
     _manualScanActive = false;
   }
@@ -2949,7 +3336,7 @@ function startAutoScanObserver() {
   }
 
   _autoScanObserver = new MutationObserver((mutationList) => {
-    const newBubbleEls = new Set();
+    const newBubbleEls = new Map(); // bubbleEl -> threadEl
     for (const m of mutationList) {
       if (m.type !== 'childList') continue;
       for (const n of m.addedNodes) {
@@ -2957,11 +3344,32 @@ function startAutoScanObserver() {
         if (n.nodeType === Node.ELEMENT_NODE) {
           const el = /** @type {Element} */ (n);
           try { if (isInsideEditableContext(el)) continue; } catch { }
+          // For Facebook/Messenger: find the chatbox root that contains this new node.
+          // This prevents scanning elements outside chatboxes (sidebar, feed, ads).
+          let fbThreadEl = null;
+          if (_isFacebookHost() || _isMessengerHost()) {
+            fbThreadEl = _getThreadForBubble(el) || null;
+            // If we can't find a thread for this element, try its children below.
+            // (The added node might be a wrapper div containing bubble rows.)
+          }
           for (const sel of _SURIIN_CHAT_BUBBLE_SELECTORS) {
             try {
-              if (el.matches && el.matches(sel) && _isChatSurface(el)) newBubbleEls.add(el);
+              if (el.matches && el.matches(sel)) {
+                if (_isFacebookHost() || _isMessengerHost()) {
+                  // For FB/Messenger, require the bubble to be inside a known chatbox root.
+                  const threadEl = fbThreadEl || _getThreadForBubble(el);
+                  if (threadEl) newBubbleEls.set(el, threadEl);
+                } else if (_isChatSurface(el) || _getThreadForBubble(el)) {
+                  newBubbleEls.set(el, _getThreadForBubble(el));
+                }
+              }
               el.querySelectorAll && el.querySelectorAll(sel).forEach(b => {
-                if (_isChatSurface(b)) newBubbleEls.add(b);
+                if (_isFacebookHost() || _isMessengerHost()) {
+                  const threadEl = _getThreadForBubble(b);
+                  if (threadEl) newBubbleEls.set(b, threadEl);
+                } else if (_isChatSurface(b) || _getThreadForBubble(b)) {
+                  newBubbleEls.set(b, _getThreadForBubble(b));
+                }
               });
             } catch { }
           }
@@ -2974,15 +3382,22 @@ function startAutoScanObserver() {
               const text = (zone.textContent || '').trim();
               if (text.length < 5) continue;
               _findBubblesBottomUp(zone.parentElement || zone, { onlyVisible: false, limit: 5 })
-                .forEach(b => newBubbleEls.add(b));
+                .forEach(b => {
+                  if (!newBubbleEls.has(b)) {
+                    const threadEl = _getThreadForBubble(b);
+                    if (threadEl) newBubbleEls.set(b, threadEl);
+                  }
+                });
             }
           } catch { }
         }
       }
     }
     if (newBubbleEls.size === 0) return;
-    for (const bubbleEl of newBubbleEls) {
-      const threadEl = _getThreadForBubble(bubbleEl);
+    const allBubbles = Array.from(newBubbleEls.keys());
+    const dedupedBubbles = _dedupeByContainment(allBubbles);
+    for (const bubbleEl of dedupedBubbles) {
+      const threadEl = newBubbleEls.get(bubbleEl) || _getThreadForBubble(bubbleEl);
       if (!threadEl) continue;
       enqueueChatBubbleScan(bubbleEl, { threadEl });
     }
@@ -3265,7 +3680,7 @@ async function scanAndHighlightChunksWithContext(items) {
  */
 async function runAutoScanWithHighlighting() {
   if (_manualScanActive) return;
-  const threads = getActiveChatThreads({ onlyVisible: true });
+  const threads = getActiveChatThreads({ onlyVisible: true, allThreads: true });
   if (!threads.length) return;
 
   for (const threadEl of threads) {
@@ -3329,6 +3744,58 @@ chrome.storage.local.get(_SURIIN_REPORTED_TEXTS_KEY, (stored) => {
   });
 });
 
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes[_SURIIN_REPORTED_TEXTS_KEY]) {
+    const newVal = changes[_SURIIN_REPORTED_TEXTS_KEY].newValue || {};
+    Object.entries(newVal).forEach(([key, val]) => {
+      const successType = typeof val === 'string' ? val : (val?.type || 'report');
+      if (successType && !_inlineSuccessByReportedKey.has(key)) {
+        _inlineSuccessByReportedKey.set(key, successType);
+        
+        // 1. Update bubble overlays
+        for (const [, co] of _inlineContextToCo.entries()) {
+          if (co.reportedKey === key) {
+            co.inlineSuccessType = successType;
+            _applyGreenShield(co);
+            if (co.iframe?.contentWindow) {
+              co.iframe.contentWindow.postMessage({ type: 'SURIIN_INLINE_SUCCESS_EXTERNAL', successType }, '*');
+            }
+          }
+        }
+        
+        // 2. Update non-bubble overlays
+        for (const [, co] of _containerOverlays.entries()) {
+          if (co.reportedKey === key) {
+            co.inlineSuccessType = successType;
+            _applyGreenShield(co);
+            if (co.iframe?.contentWindow) {
+              co.iframe.contentWindow.postMessage({ type: 'SURIIN_INLINE_SUCCESS_EXTERNAL', successType }, '*');
+            }
+          }
+        }
+        
+        // 3. Update matching bubble icons in _suriinBubbleUi
+        for (const [bubbleEl, st] of _suriinBubbleUi.entries()) {
+          const _rKey = _makeReportedKey(bubbleEl, st.bubbleText || '');
+          if (_rKey === key) {
+            if (st.icon) {
+              _applyGreenShield({ iconHost: st.icon });
+            }
+            const inlineId = _makeInlineContextId(bubbleEl, 'bubble', st.bubbleText);
+            const co = _inlineContextToCo.get(inlineId);
+            if (co) {
+              co.inlineSuccessType = successType;
+              if (co.iframe?.contentWindow) {
+                co.iframe.contentWindow.postMessage({ type: 'SURIIN_INLINE_SUCCESS_EXTERNAL', successType }, '*');
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+
 /**
  * Applies the green shield icon and border to a ContainerOverlay record.
  * @param {Object} co
@@ -3357,8 +3824,12 @@ function _makeInlineContextId(containerEl, seed, targetText) {
 }
 
 function _makeReportedKey(_containerEl, targetText) {
+  let host = location.hostname.replace(/^www\./i, '').toLowerCase();
+  if (host.includes('facebook.com') || host.includes('messenger.com')) {
+    host = 'facebook.com';
+  }
   const t = String(targetText || '').trim().toLowerCase().replace(/\s+/g, ' ');
-  return `${location.hostname}|rp|${_fnv1a(t)}`;
+  return `${host}|rp|${_fnv1a(t)}`;
 }
 
 function _attachInlineMessageListener() {
@@ -3388,6 +3859,7 @@ function _attachInlineMessageListener() {
       if (!clamped) return;
       co.iframe.style.setProperty('height', `${clamped}px`, 'important');
       if (co.modalWrapper) co.modalWrapper.style.setProperty('height', `${clamped}px`, 'important');
+      if (co.modalContainer) co.modalContainer.style.setProperty('height', `${clamped}px`, 'important');
       if (co.positionModal && co.modalOpen) co.positionModal();
       return;
     }
@@ -3402,9 +3874,21 @@ function _attachInlineMessageListener() {
             break;
           }
         }
+        if (!co) {
+          for (const [, _co] of _inlineContextToCo) {
+            if (_co?.iframe?.contentWindow && _co.iframe.contentWindow === ev.source) {
+              co = _co;
+              break;
+            }
+          }
+        }
       }
-      if (co && typeof co.closeModal === 'function') {
-        co.closeModal();
+      if (co) {
+        if (typeof co.closeModal === 'function') {
+          co.closeModal();
+        } else if (co.modalContainer) {
+          co.modalContainer.style.setProperty('display', 'none', 'important');
+        }
       } else if (typeof _activeSuriinInlineClose === 'function') {
         const close = _activeSuriinInlineClose;
         _activeSuriinInlineClose = null;
@@ -3450,11 +3934,31 @@ function _attachInlineMessageListener() {
         co.inlineSuccessType = successType;
         _applyGreenShield(co);
       }
-      // Apply green shield to ALL other overlay instances on this page
+      // Apply green shield and post success message to ALL other overlays on this page
       for (const [, _allCo] of _containerOverlays) {
         if (_allCo === co) continue;
         _allCo.inlineSuccessType = successType;
         _applyGreenShield(_allCo);
+        if (_allCo.iframe?.contentWindow) {
+          _allCo.iframe.contentWindow.postMessage({ type: 'SURIIN_INLINE_SUCCESS_EXTERNAL', successType }, '*');
+        }
+      }
+      for (const [, _allCo] of _inlineContextToCo) {
+        if (_allCo === co) continue;
+        _allCo.inlineSuccessType = successType;
+        _applyGreenShield(_allCo);
+        if (_allCo.iframe?.contentWindow) {
+          _allCo.iframe.contentWindow.postMessage({ type: 'SURIIN_INLINE_SUCCESS_EXTERNAL', successType }, '*');
+        }
+      }
+      // Swap matching bubble icons in _suriinBubbleUi
+      for (const [bubbleEl, st] of _suriinBubbleUi.entries()) {
+        const _rKey = _makeReportedKey(bubbleEl, st.bubbleText || '');
+        if (_rKey === co.reportedKey) {
+          if (st.icon) {
+            _applyGreenShield({ iconHost: st.icon });
+          }
+        }
       }
     }
   }, true);
@@ -3554,9 +4058,19 @@ function highlightAndInjectUI(targetText, scanResult) {
     let created = 0;
     for (const textNode of matchingNodes) {
       if (_highlightedTextNodes.has(textNode)) continue;
+      // CRITICAL FIX: Check data-suriin-checked attribute to prevent duplicates across re-renders
+      if (textNode.parentElement && textNode.parentElement.hasAttribute('data-suriin-checked')) continue;
       if (isInsideEditableContext(textNode)) continue;
       if (restrictFacebookChatbox && !_isInsideActiveFacebookChatbox(textNode.parentElement)) continue;
-      if (!_isChatSurface(textNode.parentElement)) continue;
+      // Walk up ancestors to check if text node is inside a chat surface
+      let _inChat = _isChatSurface(textNode.parentElement);
+      if (!_inChat) {
+        let _anc = textNode.parentElement?.parentElement;
+        for (let _d = 0; _d < 8 && _anc && _anc !== document.body; _d++, _anc = _anc.parentElement) {
+          if (_isChatSurface(_anc)) { _inChat = true; break; }
+        }
+      }
+      if (!_inChat) continue;
       console.log('[SuriinAI] Injecting highlight for:', keyword, '|', textNode.textContent.substring(0, 40));
       _createOverlayForNode(textNode, keyword, targetText, scanResult);
       created++;
@@ -3568,9 +4082,19 @@ function highlightAndInjectUI(targetText, scanResult) {
       const rangeMatches = findTextRangeAcrossNodes(keyword);
       for (const { range, anchorNode } of rangeMatches) {
         if (_highlightedTextNodes.has(anchorNode)) continue;
+        // CRITICAL FIX: Check data-suriin-checked attribute to prevent duplicates across re-renders
+        if (anchorNode.parentElement && anchorNode.parentElement.hasAttribute('data-suriin-checked')) continue;
         if (isInsideEditableContext(anchorNode)) continue;
         if (restrictFacebookChatbox && !_isInsideActiveFacebookChatbox(anchorNode.parentElement)) continue;
-        if (!_isChatSurface(anchorNode.parentElement)) continue;
+        // Walk up ancestors to check if text node is inside a chat surface
+        let _inChat = _isChatSurface(anchorNode.parentElement);
+        if (!_inChat) {
+          let _anc = anchorNode.parentElement?.parentElement;
+          for (let _d = 0; _d < 8 && _anc && _anc !== document.body; _d++, _anc = _anc.parentElement) {
+            if (_isChatSurface(_anc)) { _inChat = true; break; }
+          }
+        }
+        if (!_inChat) continue;
         _createOverlayForNode(anchorNode, keyword, targetText, scanResult, range);
       }
     }
@@ -3601,7 +4125,15 @@ function _createOverlayForNode(textNode, searchStr, targetText, scanResult, preb
   // Resolve the semantic container this text lives inside
   const containerEl = _getContainerElement(textNode);
   if (_shouldRestrictToFacebookChatbox() && !_isInsideActiveFacebookChatbox(containerEl)) return;
-  if (!_isChatSurface(containerEl)) return;
+  // Check if containerEl or any ancestor is a chat surface
+  let _containerInChat = _isChatSurface(containerEl);
+  if (!_containerInChat) {
+    let _anc = containerEl.parentElement;
+    for (let _d = 0; _d < 10 && _anc && _anc !== document.body; _d++, _anc = _anc.parentElement) {
+      if (_isChatSurface(_anc)) { _containerInChat = true; break; }
+    }
+  }
+  if (!_containerInChat) return;
 
   // For Facebook chatboxes, avoid creating a second overlay system on top of the
   // per-bubble UI from applyBubbleRiskUI. If this text lives inside a chat bubble
@@ -3640,7 +4172,11 @@ function _createOverlayForNode(textNode, searchStr, targetText, scanResult, preb
     co.highlights.set(searchStr, he);
     _highlightedTextNodes.add(textNode);
     // Register parent element for hover detection
-    if (he.textNode.parentElement) _textParentToIconHost.set(he.textNode.parentElement, co.iconHost);
+    if (he.textNode.parentElement) {
+      _textParentToIconHost.set(he.textNode.parentElement, co.iconHost);
+      // CRITICAL FIX: Mark element with data-suriin-checked for persistent state across re-renders
+      he.textNode.parentElement.setAttribute('data-suriin-checked', 'true');
+    }
     return;
   }
 
@@ -4874,6 +5410,8 @@ function findAllTextNodesContaining(searchStr, wordBoundaryRe = null) {
   let node;
   while ((node = walker.nextNode())) {
     if (_highlightedTextNodes.has(node)) continue;
+    // CRITICAL FIX: Skip if parent has data-suriin-checked attribute (persistent across re-renders)
+    if (node.parentElement && node.parentElement.hasAttribute('data-suriin-checked')) continue;
     // Use case-insensitive matching in both paths so 'test-scam' matches 'Test-scam' etc.
     const matches = wordBoundaryRe
       ? wordBoundaryRe.test(node.textContent)
@@ -5041,6 +5579,30 @@ function normalizeAutoScanResultForPopup(scanResult, targetText) {
       ? 'WARNING: AI flagged this message as suspicious.'
       : 'SAFE: No watchlist match and AI found no suspicious patterns.'));
 
+  // Deduplicate and gather all page flagged results in the active scan session
+  const flaggedResults = [];
+  try {
+    for (const [bubbleEl, st] of _suriinBubbleUi.entries()) {
+      if (st.scanResult && st.bubbleText) {
+        const s = String(st.scanResult.status || st.scanResult.overall_status || '').toLowerCase();
+        if (s === 'critical' || s === 'warning') {
+          flaggedResults.push({
+            bubbleId: bubbleEl.id || '',
+            bubbleKey: '',
+            text: st.bubbleText,
+            status: s,
+            score: st.scanResult.overall_score ?? st.scanResult.score ?? (s === 'critical' ? 100 : (s === 'warning' ? 75 : 0)),
+            ai_scan: st.scanResult.ai_scan || null,
+            watchlist: st.scanResult.watchlist || null,
+            sec_watchlist_hits: st.scanResult.sec_watchlist_hits || []
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error gathering flagged results:', err);
+  }
+
   return {
     text: targetText || '',
     url: window.location.href || '',
@@ -5052,12 +5614,19 @@ function normalizeAutoScanResultForPopup(scanResult, targetText) {
     overall_score: scorePct,
     watchlist,
     ai_scan,
+    sec_watchlist_hits: scanResult.sec_watchlist_hits || [],
+    flaggedResults,
     breakdown,
     message
   };
 }
 
 function createSuriinPopupIframeModal(scanResult, targetText, onClose) {
+  if (scanResult && typeof scanResult === 'object') {
+    const level = scanResult.threat_level || scanResult.status || 'safe';
+    scanResult.status = level.toLowerCase();
+    scanResult.overall_status = level.toUpperCase();
+  }
   const modal = document.createElement('div');
   modal.style.cssText = `
     width: 290px !important;
@@ -5175,12 +5744,14 @@ function createSuriinPopupIframeModal(scanResult, targetText, onClose) {
  * @returns {{ modal: HTMLElement, closeBtn: HTMLElement }}
  */
 function createSuriinInlineModal(scanResult, targetText, onClose) {
-  const { score, status, breakdown } = scanResult;
+  const { score, status, breakdown, watchlist } = scanResult;
 
+  // Always treat SEC watchlist match as critical for UI
+  const isSecCritical = (watchlist && typeof watchlist === 'object' && String(watchlist.status || '').toUpperCase() === 'MATCHED') || (breakdown && breakdown.gov_records && breakdown.gov_records.is_flagged);
   const severityEmoji = { danger: '🔴', warning: '🟡', safe: '🟢' };
   const statusLabel = { critical: 'CRITICAL RISK', uncertain: 'Review Needed', safe: 'Low Risk' };
-  const isCritical = status === 'critical';
-  const isActionable = status === 'critical' || status === 'uncertain';
+  const isCritical = status === 'critical' || isSecCritical;
+  const isActionable = isCritical || status === 'uncertain';
 
   // ── Shared helpers ─────────────────────────────────────────────────────────
   const S = (el, css) => { el.style.cssText = css; return el; };

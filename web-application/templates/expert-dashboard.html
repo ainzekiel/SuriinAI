@@ -128,9 +128,9 @@
         <p class="dashboard-subtitle">Review pending and under-investigation reports with investigation notes.</p>
 
         <div class="stats-grid" style="margin-bottom: var(--space-xl);">
-          <div class="stat-card stat-card--warning" id="card-pending">
-            <div class="stat-card__label">Pending Cases</div>
-            <div class="stat-card__value" id="stat-pending"><div class="skeleton-cell" style="width: 60px; height: 32px;"></div></div>
+          <div class="stat-card stat-card--warning" id="card-unassigned">
+            <div class="stat-card__label">Unassigned Cases</div>
+            <div class="stat-card__value" id="stat-unassigned"><div class="skeleton-cell" style="width: 60px; height: 32px;"></div></div>
           </div>
           <div class="stat-card stat-card--info" id="card-investigating">
             <div class="stat-card__label">My Active Investigations</div>
@@ -259,14 +259,13 @@
               </div>
             </div>
             
-            <!-- Right: Source Identifier + Link/Badge (50%) -->
-            <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-md);">
+            <!-- Right: Source Identifier (hidden) -->
+            <div style="flex: 1 1 0; min-width: 0; display: none !important; flex-direction: column; gap: var(--space-md);">
               <!-- Source Identifier Box -->
               <div style="background: var(--clr-bg-secondary); padding: var(--space-md); border-radius: var(--radius-md); flex: 1; display: flex; flex-direction: column; justify-content: center;">
                 <div style="font-size: var(--font-xs); color: var(--clr-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Source Identifier</div>
                 <div style="font-size: var(--font-sm); font-weight: 500; color: var(--clr-text-primary); word-break: break-all;" id="modal-source-identifier">—</div>
               </div>
-              
             </div>
           </div>
         </div>

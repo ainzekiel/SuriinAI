@@ -27,11 +27,15 @@
 
 const ALARM_NAME = 'suriin_auto_scan';
 const ALARM_NOTIF_CHECK = 'suriin_notif_check';
+const ALARM_WATCHLIST_REFRESH = 'suriin_watchlist_refresh';
 const SCAN_INTERVAL_MINUTES = 1;
 const NOTIF_CHECK_INTERVAL_MINUTES = 1;
+const WATCHLIST_REFRESH_INTERVAL_HOURS = 6;
 const API_ENDPOINT = 'http://127.0.0.1:5000/api/scan-text';
 const FLASK_API_URL = 'http://127.0.0.1:5000';
 const STORAGE_KEY_AUTO_SCAN = 'suriin_auto_scan_enabled';
+const STORAGE_KEY_WATCHLIST_CACHE = 'suriin_watchlist_cache';
+const WATCHLIST_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
 
 function sanitizeScanText(input) {
   if (typeof input !== 'string') return '';
@@ -40,6 +44,139 @@ function sanitizeScanText(input) {
   text = text.replace(/^["'\u201C\u201D\u2018\u2019]+|["'\u201C\u201D\u2018\u2019]+$/g, '');
   text = text.replace(/\s+/g, ' ').trim();
   return text;
+}
+
+// ── WATCHLIST CACHE FUNCTIONS ─────────────────────────────────────────────────────
+
+async function getCachedWatchlist() {
+  try {
+    const result = await chrome.storage.local.get([STORAGE_KEY_WATCHLIST_CACHE]);
+    const cacheData = result[STORAGE_KEY_WATCHLIST_CACHE];
+    
+    if (!cacheData || !cacheData.data || !cacheData.timestamp) {
+      console.log('[SuriinAI BG] No watchlist cache found');
+      return null;
+    }
+    
+    // Check if cache is still valid
+    const now = Date.now();
+    if (now - cacheData.timestamp > WATCHLIST_CACHE_TTL) {
+      console.log('[SuriinAI BG] Watchlist cache expired');
+      await chrome.storage.local.remove([STORAGE_KEY_WATCHLIST_CACHE]);
+      return null;
+    }
+    
+    console.log('[SuriinAI BG] Using cached watchlist with', cacheData.data.length, 'items');
+    return cacheData.data;
+  } catch (error) {
+    console.warn('[SuriinAI BG] Error reading watchlist cache:', error);
+    return null;
+  }
+}
+
+async function setCachedWatchlist(watchlistData) {
+  try {
+    const cacheData = {
+      data: watchlistData,
+      timestamp: Date.now(),
+      version: '1.0'
+    };
+    
+    await chrome.storage.local.set({ [STORAGE_KEY_WATCHLIST_CACHE]: cacheData });
+    console.log('[SuriinAI BG] Cached watchlist with', watchlistData.length, 'items');
+  } catch (error) {
+    console.warn('[SuriinAI BG] Error caching watchlist:', error);
+  }
+}
+
+async function fetchAndCacheWatchlist() {
+  try {
+    console.log('[SuriinAI BG] Fetching fresh watchlist from backend');
+    
+    // Get auth token
+    const authResult = await chrome.storage.local.get(['suriin_auth_token']);
+    const token = authResult.suriin_auth_token;
+    
+    if (!token) {
+      console.warn('[SuriinAI BG] No auth token available for watchlist fetch');
+      return null;
+    }
+    
+    const response = await fetch(`${FLASK_API_URL}/api/admin/sec-watchlist?limit=1000`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      console.warn('[SuriinAI BG] Failed to fetch watchlist:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    const fetchedWatchlist = data.watchlist || [];
+    
+    // Cache the watchlist
+    await setCachedWatchlist(fetchedWatchlist);
+    
+    return fetchedWatchlist;
+  } catch (error) {
+    console.error('[SuriinAI BG] Error fetching watchlist:', error);
+    return null;
+  }
+}
+
+async function getWatchlist() {
+  // Try cache first
+  let watchlist = await getCachedWatchlist();
+  
+  if (!watchlist) {
+    // Fetch from backend if cache miss
+    watchlist = await fetchAndCacheWatchlist();
+  }
+  
+  return watchlist;
+}
+
+// Simple local fuzzy matching to reduce API calls
+function localWatchlistCheck(text, watchlist) {
+  if (!watchlist || !text || text.length < 3) return null;
+  
+  const lowerText = text.toLowerCase();
+  const companies = [];
+  
+  // Extract potential company names (simple heuristic)
+  const words = lowerText.split(/\s+/);
+  for (let i = 0; i < words.length; i++) {
+    // Check single words and combinations
+    for (let j = 1; j <= Math.min(4, words.length - i); j++) {
+      const phrase = words.slice(i, i + j).join(' ');
+      if (phrase.length < 3) continue;
+      
+      // Check against watchlist
+      for (const item of watchlist) {
+        const companyName = (item.company_name || '').toLowerCase();
+        if (companyName.includes(phrase) || phrase.includes(companyName)) {
+          companies.push({
+            company_name: item.company_name,
+            sec_category: item.sec_category,
+            confidence: Math.max(0.7, 1 - Math.abs(companyName.length - phrase.length) / Math.max(companyName.length, phrase.length)),
+            source: 'local_cache'
+          });
+        }
+      }
+    }
+  }
+  
+  if (companies.length > 0) {
+    // Return highest confidence match
+    companies.sort((a, b) => b.confidence - a.confidence);
+    return companies[0];
+  }
+  
+  return null;
 }
 
 // ── INSTALLATION HOOK ─────────────────────────────────────────────────────────
@@ -58,6 +195,12 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
   // Start notification polling alarm on install/update
   startNotificationPolling();
+  
+  // Start watchlist refresh alarm
+  chrome.alarms.create(ALARM_WATCHLIST_REFRESH, {
+    delayInMinutes: 5, // Start 5 minutes after install
+    periodInMinutes: WATCHLIST_REFRESH_INTERVAL_HOURS * 60
+  });
 });
 
 // ── MESSAGE LISTENER ──────────────────────────────────────────────────────────
@@ -295,6 +438,12 @@ if (chrome.alarms) {
     if (alarm.name === ALARM_NOTIF_CHECK) {
       console.log('[SuriinAI BG] Notification check alarm fired.');
       await pollNotificationBadge();
+    }
+
+    // ── Watchlist refresh alarm ──
+    if (alarm.name === ALARM_WATCHLIST_REFRESH) {
+      console.log('[SuriinAI BG] Watchlist refresh alarm fired.');
+      await fetchAndCacheWatchlist();
     }
   });
 }
@@ -640,8 +789,28 @@ async function runAutoScanOnActiveTab() {
 
 async function callScanAPI(text) {
   try {
+    const sanitizedText = sanitizeScanText(text);
+    
+    // Try local watchlist check first to reduce API calls
+    const cachedWatchlist = await getWatchlist();
+    if (cachedWatchlist && cachedWatchlist.length > 0) {
+      const localMatch = localWatchlistCheck(sanitizedText, cachedWatchlist);
+      if (localMatch && localMatch.confidence > 0.8) {
+        console.log('[SuriinAI BG] Local watchlist match found, skipping API call');
+        return {
+          overall_status: 'RISKY',
+          risk_status: 'RISKY',
+          status: 'RISKY',
+          matches: [localMatch],
+          source: 'local_cache',
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+    
+    // Proceed with API call if no high-confidence local match
     const headers = { 'Content-Type': 'application/json' };
-    const payload = { text: sanitizeScanText(text) };
+    const payload = { text: sanitizedText };
 
     // Conditionally attach auth credentials if available
     try {
@@ -683,7 +852,8 @@ async function callScanAPI(text) {
     if (!Number.isFinite(scorePct)) scorePct = status === 'critical' ? 100 : (status === 'warning' ? 75 : 0);
     scorePct = Math.max(0, Math.min(100, Math.round(scorePct)));
 
-    const watchlist = data.watchlist && typeof data.watchlist === 'object' ? data.watchlist : null;
+    const responseWatchlist = data.watchlist && typeof data.watchlist === 'object' ? data.watchlist : null;
+    const responseWhitelist = data.whitelist && typeof data.whitelist === 'object' ? data.whitelist : null;
     const ai_scan = data.ai_scan && typeof data.ai_scan === 'object' ? data.ai_scan : null;
 
     const message = data.message ?? (
@@ -691,7 +861,9 @@ async function callScanAPI(text) {
         ? 'CRITICAL: Matched an official SEC/DTI watchlist item.'
         : (status === 'warning'
           ? 'WARNING: AI flagged this message as suspicious.'
-          : 'SAFE: No watchlist match and AI found no suspicious patterns.')
+          : (responseWhitelist?.status === 'MATCHED'
+            ? `VERIFIED: ${responseWhitelist.detail}`
+            : 'SAFE: No watchlist match and AI found no suspicious patterns.'))
     );
 
     return {
@@ -701,26 +873,30 @@ async function callScanAPI(text) {
       scorePct,
       overall_status: overallUpper || (status === 'critical' ? 'CRITICAL' : (status === 'warning' ? 'WARNING' : 'SAFE')),
       overall_score: scorePct,
-      watchlist,
+      watchlist: responseWatchlist,
+      whitelist: responseWhitelist,
       ai_scan,
-      matched_company: watchlist?.matched_company || null,
+      sec_watchlist_hits: Array.isArray(data.sec_watchlist_hits) ? data.sec_watchlist_hits : [],
+      sec_whitelist_hits: Array.isArray(data.sec_whitelist_hits) ? data.sec_whitelist_hits : [],
+      matched_company: responseWatchlist?.matched_company || responseWhitelist?.matched_company || null,
       trigger_tokens:  Array.isArray(ai_scan?.trigger_tokens) ? ai_scan.trigger_tokens : [],
       ai_confidence:   typeof ai_scan?.ai_confidence === 'number' ? ai_scan.ai_confidence : 0,
       message,
-      breakdown: {
+      breakdown: data.breakdown || {
         message_tone: {
           is_flagged: String(ai_scan?.status || '').toUpperCase() === 'SUSPICIOUS',
           severity: String(ai_scan?.status || '').toUpperCase() === 'SUSPICIOUS' ? 'warning' : 'safe',
-          display_text: ai_scan?.detail || (String(ai_scan?.status || '').toUpperCase() === 'SUSPICIOUS'
-            ? 'Suspicious language patterns detected.'
-            : 'No suspicious patterns detected.')
+          display_text: ai_scan?.detail || 'No suspicious patterns detected.'
         },
         gov_records: {
-          is_flagged: String(watchlist?.status || '').toUpperCase() === 'MATCHED',
-          severity: String(watchlist?.status || '').toUpperCase() === 'MATCHED' ? 'critical' : 'safe',
-          display_text: watchlist?.detail || (String(watchlist?.status || '').toUpperCase() === 'MATCHED'
-            ? 'Matched an official SEC/DTI watchlist item.'
-            : 'No watchlist match found.')
+          is_flagged: String(responseWatchlist?.status || '').toUpperCase() === 'MATCHED',
+          severity: String(responseWatchlist?.status || '').toUpperCase() === 'MATCHED' ? 'critical' : 'safe',
+          display_text: responseWatchlist?.detail || 'No watchlist match found.'
+        },
+        whitelist_records: {
+          is_flagged: String(responseWhitelist?.status || '').toUpperCase() === 'MATCHED',
+          severity: String(responseWhitelist?.status || '').toUpperCase() === 'MATCHED' ? 'legit' : 'safe',
+          display_text: responseWhitelist?.detail || 'No whitelist match found.'
         }
       }
     };

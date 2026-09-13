@@ -12,7 +12,8 @@ window.addEventListener('suriin:auth-ready', (e) => {
 	}
 
 	loadOperationsMetrics();
-	loadBackendHealth();
+	loadAiPerformanceMetrics();
+	loadPlatformChart();
 });
 
 async function loadOperationsMetrics() {
@@ -26,18 +27,31 @@ async function loadOperationsMetrics() {
 		const reportsSnapshot = await db.collection('Reports').get();
 		const reports = reportsSnapshot.docs.map((doc) => doc.data() || {});
 		const totalReports = reports.length;
-		const pendingReports = reports.filter((r) => r.status === 'Pending').length;
-		const investigatingReports = reports.filter((r) => r.status === 'Under Investigation' || r.status === 'Investigating').length;
-		const reviewedReports = reports.filter((r) => r.status === 'Reviewed').length;
+
+		// Unassigned Cases (backward compatible with 'Pending')
+		const unassignedReports = reports.filter((r) =>
+			r.status === 'Unassigned' || r.status === 'Pending'
+		).length;
+
+		// Under Investigation (backward compatible with 'Investigating', 'Under Review')
+		const investigatingReports = reports.filter((r) =>
+			r.status === 'Under Investigation' ||
+			r.status === 'Investigating' ||
+			r.status === 'Under Review'
+		).length;
+
+		// Cases Resolved (backward compatible with 'Reviewed', 'Dismissed')
+		const resolvedReports = reports.filter((r) =>
+			r.status === 'Resolved' ||
+			r.status === 'Reviewed' ||
+			r.status === 'Dismissed'
+		).length;
 
 		// Report Lifecycle Funnel (top cards)
 		setText('stat-total-reports', String(totalReports));
-		setText('stat-pending-reports', String(pendingReports));
+		setText('stat-unassigned-reports', String(unassignedReports));
 		setText('stat-investigating-reports', String(investigatingReports));
-		setText('stat-reviewed-reports', String(reviewedReports));
-
-		const updatedEl = document.getElementById('status-last-updated');
-		if (updatedEl) updatedEl.textContent = new Date().toLocaleString();
+		setText('stat-resolved-reports', String(resolvedReports));
 
 		// Remove skeleton classes after data loads
 		document.querySelectorAll('.stat-card__value.is-skeleton').forEach(el => {
@@ -56,6 +70,209 @@ async function loadOperationsMetrics() {
 function setText(id, value) {
 	const el = document.getElementById(id);
 	if (el) el.textContent = value;
+}
+
+/**
+ * Load AI Model Performance metrics
+ * Calculates AI-Expert consensus rate, false positives (human overrides), and SEC-assisted catches
+ */
+async function loadAiPerformanceMetrics() {
+	const db = window.__suriinFirestore;
+	if (!db) {
+		console.error('[SuriinAI Admin] Firestore not available for AI metrics.');
+		return;
+	}
+
+	try {
+		const reportsSnapshot = await db.collection('Reports').get();
+		const reports = reportsSnapshot.docs.map((doc) => doc.data() || {});
+
+		// Filter to resolved/reviewed reports (where expert has made a decision)
+		const resolvedReports = reports.filter((r) =>
+			r.status === 'Resolved' || r.status === 'Reviewed' || r.status === 'Dismissed'
+		);
+
+		if (resolvedReports.length === 0) {
+			setText('ai-agreement-rate', '0%');
+			setText('false-positives', '0%');
+			setText('sec-assisted-catches', '0%');
+			return;
+		}
+
+		let aiExpertConsensus = 0;  // AI flagged threat + Expert confirmed threat
+		let humanOverrides = 0;     // Resolved + Expert verdict Verified Safe (false positives)
+		let secAssistedCatches = 0; // No AI flag + SEC matched + Expert confirmed threat
+
+		resolvedReports.forEach((report) => {
+			const aiVerdict = report.ai_analysis?.status || report.ai_status || report.ai_verdict || '';
+			const riskScore = report.risk_score || 0;
+			const normalizedRisk = riskScore > 1 ? riskScore / 100 : riskScore; // Normalize 0-100 to 0-1
+			const expertVerdict = report.expert_verdict || report.expertVerdict || '';
+			const expertVerdictLower = expertVerdict.toLowerCase();
+
+			// Check SEC watchlist match (matched_company or gov_records.is_flagged)
+			const secMatched = report.gov_records?.is_flagged === true ||
+							   report.sec_match === true ||
+							   (report.matched_company && report.matched_company.length > 0);
+
+			// Determine if AI predicted threat (risk_score >= 0.4 or verdict contains threat keywords)
+			const aiFlaggedThreat = aiVerdict.toLowerCase().includes('scam') ||
+									aiVerdict.toLowerCase().includes('threat') ||
+									aiVerdict.toLowerCase().includes('critical') ||
+									aiVerdict.toLowerCase().includes('warning') ||
+									normalizedRisk >= 0.4;
+
+			// AI-Expert Consensus: AI flagged threat AND Expert confirmed threat
+			const expertConfirmedThreat = expertVerdictLower.includes('confirmed threat') ||
+										  expertVerdictLower.includes('confirmed scam') ||
+										  expertVerdictLower.includes('threat');
+
+			if (aiFlaggedThreat && expertConfirmedThreat) {
+				aiExpertConsensus++;
+			}
+
+			// Human Overrides (False Positives): Resolved status + Expert verdict Verified Safe
+			const expertVerifiedSafe = expertVerdictLower.includes('verified safe') ||
+									   expertVerdictLower.includes('safe') ||
+									   expertVerdictLower === 'safe';
+
+			if (expertVerifiedSafe) {
+				humanOverrides++;
+			}
+
+			// SEC-Assisted Catches: No AI flag + SEC matched + Expert confirmed threat
+			const aiSaidSafe = !aiFlaggedThreat ||
+							   aiVerdict.toLowerCase().includes('safe') ||
+							   normalizedRisk < 0.4;
+
+			if (aiSaidSafe && secMatched && expertConfirmedThreat) {
+				secAssistedCatches++;
+			}
+		});
+
+		const total = resolvedReports.length;
+		const consensusRate = ((aiExpertConsensus / total) * 100).toFixed(1);
+		const overrideRate = ((humanOverrides / total) * 100).toFixed(1);
+		const secRate = ((secAssistedCatches / total) * 100).toFixed(1);
+
+		setText('ai-agreement-rate', `${consensusRate}%`);
+		setText('false-positives', `${overrideRate}%`);
+		setText('sec-assisted-catches', `${secRate}%`);
+
+	} catch (err) {
+		console.error('[SuriinAI Admin] Failed to load AI performance metrics:', err);
+		setText('ai-agreement-rate', '—');
+		setText('false-positives', '—');
+		setText('sec-assisted-catches', '—');
+	}
+}
+
+let platformChart = null;
+
+/**
+ * Load Most Exploited Platform pie chart
+ */
+async function loadPlatformChart() {
+	const db = window.__suriinFirestore;
+	if (!db) {
+		console.error('[SuriinAI Admin] Firestore not available for platform chart.');
+		return;
+	}
+
+	try {
+		// Get reports from last 30 days
+		const thirtyDaysAgo = new Date();
+		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+		
+		const reportsSnapshot = await db.collection('Reports')
+			.where('created_at', '>=', thirtyDaysAgo.toISOString())
+			.limit(1000)
+			.get();
+		
+		const reports = reportsSnapshot.docs.map((doc) => doc.data() || {});
+
+		// Extract platforms/domains from URLs
+		const platformCounts = {};
+		reports.forEach((report) => {
+			const url = report.url || '';
+			try {
+				const domain = new URL(url).hostname.replace(/^www\./, '');
+				// Group by top-level domain or platform
+				const platform = domain.split('.').slice(-2).join('.');
+				platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+			} catch {
+				// Invalid URL, skip
+			}
+		});
+
+		// Sort by count and take top 8, bucket rest as "Others"
+		const sorted = Object.entries(platformCounts).sort((a, b) => b[1] - a[1]);
+		const top8 = sorted.slice(0, 8);
+		const others = sorted.slice(8).reduce((sum, [, count]) => sum + count, 0);
+
+		const labels = top8.map(([platform]) => platform);
+		const data = top8.map(([, count]) => count);
+
+		if (others > 0) {
+			labels.push('Others');
+			data.push(others);
+		}
+
+		// Color palette matching dark theme
+		const colors = [
+			'#6C63FF', '#3ECFCF', '#F59E0B', '#EF4444',
+			'#8B5CF6', '#EC4899', '#06B6D4', '#84CC16',
+			'#6B7280'
+		];
+
+		const ctx = document.getElementById('platform-chart');
+		if (!ctx) return;
+
+		// Destroy existing chart if present
+		if (platformChart) {
+			platformChart.destroy();
+		}
+
+		platformChart = new Chart(ctx, {
+			type: 'pie',
+			data: {
+				labels: labels,
+				datasets: [{
+					data: data,
+					backgroundColor: colors.slice(0, labels.length),
+					borderWidth: 2,
+					borderColor: 'rgba(0,0,0,0.3)'
+				}]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						position: 'right',
+						labels: {
+							color: '#E5E7EB',
+							font: { size: 11 },
+							padding: 12,
+							boxWidth: 10
+						}
+					},
+					tooltip: {
+						callbacks: {
+							label: (context) => {
+								const total = context.dataset.data.reduce((a, b) => a + b, 0);
+								const percentage = ((context.raw / total) * 100).toFixed(1);
+								return `${context.label}: ${context.raw} (${percentage}%)`;
+							}
+						}
+					}
+				}
+			}
+		});
+
+	} catch (err) {
+		console.error('[SuriinAI Admin] Failed to load platform chart:', err);
+	}
 }
 
 async function loadBackendHealth() {

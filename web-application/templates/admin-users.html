@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Suriin AI - Admin User Management.">
-  <title>Suriin AI - User Management</title>
+  <meta name="description" content="Suriin AI - Expert Management.">
+  <title>Suriin AI - Expert Management</title>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -105,7 +105,7 @@
             <span class="sidebar-link__icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </span>
-            <span class="sidebar-link__text">User Management</span>
+            <span class="sidebar-link__text">Expert Management</span>
           </a>
           <a href="/admin-analytics" class="sidebar-link" id="nav-analytics">
             <span class="sidebar-link__icon">
@@ -118,6 +118,12 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             </span>
             <span class="sidebar-link__text">Audit Logs</span>
+          </a>
+          <a href="/admin-intelligence" class="sidebar-link" id="nav-intelligence">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1M6.343 4.343l-.707-.707M18.364 4.343l.707-.707M4 12h1M20 12h1M12 20v1"/><circle cx="12" cy="12" r="4"/></svg>
+            </span>
+            <span class="sidebar-link__text">Threat Intelligence</span>
           </a>
           <div class="sidebar-divider"></div>
           <a href="/admin-settings" class="sidebar-link" id="nav-settings">
@@ -132,17 +138,17 @@
       <!-- ── Main Content ────────────────────────────────────────────────── -->
       <main class="dashboard-main">
 
-        <h1 class="dashboard-title">Expert / Analyst Account Management</h1>
-        <p class="dashboard-subtitle">View, suspend, and manage expert analyst accounts.</p>
+        <h1 class="dashboard-title">Expert Management</h1>
+        <p class="dashboard-subtitle">Provision, view, suspend, and manage expert analyst accounts.</p>
 
         <!-- Stats -->
         <div class="stats-grid" id="stats-grid">
           <div class="stat-card stat-card--info">
-            <div class="stat-card__label is-skeleton">Total Users</div>
+            <div class="stat-card__label is-skeleton">Total Experts</div>
             <div class="stat-card__value is-skeleton" id="stat-total-users">0</div>
           </div>
           <div class="stat-card stat-card--safe">
-            <div class="stat-card__label is-skeleton">Active Users</div>
+            <div class="stat-card__label is-skeleton">Active Experts</div>
             <div class="stat-card__value is-skeleton" id="stat-active-users">0</div>
           </div>
           <div class="stat-card stat-card--warning">
@@ -150,7 +156,7 @@
             <div class="stat-card__value is-skeleton" id="stat-suspended-users">0</div>
           </div>
           <div class="stat-card stat-card--critical">
-            <div class="stat-card__label is-skeleton">Experts</div>
+            <div class="stat-card__label is-skeleton">New (7d)</div>
             <div class="stat-card__value is-skeleton" id="stat-expert-users">0</div>
           </div>
         </div>
@@ -158,13 +164,28 @@
         <!-- Expert Accounts Table -->
         <section class="reports-section">
           <div class="reports-header">
-            <h2 class="reports-header__title">Expert Analysts</h2>
-            <span class="reports-header__count" id="users-count">0 experts</span>
+            <h2 class="reports-header__title">User Management</h2>
+            <button class="btn btn--primary" id="btn-provision-expert" style="background: linear-gradient(135deg, #6C63FF, #3ECFCF); border: none; display: flex; align-items: center; gap: 6px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Provision Expert Account
+            </button>
+          </div>
+
+          <!-- Tab Navigation -->
+          <div class="user-tabs" id="user-tabs" style="padding: 0 var(--space-lg); border-bottom: 2px solid var(--clr-border);">
+            <button class="user-tab user-tab--active" data-tab="experts" id="tab-experts">
+              Expert Analysts
+              <span class="user-tab__count" id="tab-count-experts">0</span>
+            </button>
+            <button class="user-tab" data-tab="admins" id="tab-admins">
+              System Administrators
+              <span class="user-tab__count" id="tab-count-admins">0</span>
+            </button>
           </div>
 
           <div style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
             <table class="reports-table" id="users-table" style="table-layout: fixed; width: 100%;">
-              <thead>
+              <thead id="users-thead">
                 <tr>
                   <th style="width: 20%; min-width: 140px;">Name</th>
                   <th style="width: 30%; min-width: 200px;">Email</th>
@@ -184,8 +205,8 @@
 
           <div class="empty-state" id="users-empty" style="display:none;">
             <div class="empty-state__icon">👥</div>
-            <div class="empty-state__title">No expert accounts found</div>
-            <p class="empty-state__desc">Expert analyst accounts from Firestore will appear here.</p>
+            <div class="empty-state__title" id="empty-title">No expert accounts found</div>
+            <p class="empty-state__desc" id="empty-desc">Expert analyst accounts from Firestore will appear here.</p>
           </div>
         </section>
 
@@ -209,6 +230,131 @@
     </div>
   </div>
 
+  <!-- Create Expert Account Modal -->
+  <div id="createExpertModal" class="modal--hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; display: none;">
+    <div class="modal__backdrop" id="create-expert-backdrop" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8);"></div>
+    <div class="modal__wrapper" style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;">
+      <div class="modal__content" style="background: rgba(17, 24, 39, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; max-width: 480px; width: 100%; backdrop-filter: blur(24px) saturate(1.2); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div class="modal__header" style="display: flex; justify-content: space-between; align-items: center; padding: 24px 24px 0;">
+          <h3 class="modal__title" style="margin: 0; color: #F3F4F6; font-size: 18px; font-weight: 600;">Provision Expert Account</h3>
+          <button class="modal__close" id="create-expert-close" aria-label="Close modal" style="background: none; border: none; color: #9CA3AF; cursor: pointer; font-size: 24px; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;">&times;</button>
+        </div>
+
+        <form id="create-expert-form" style="padding: 20px 24px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="form-group">
+              <label for="expert-firstname" style="display: block; font-size: 13px; color: #9CA3AF; margin-bottom: 6px;">First Name <span style="color: #EF4444;">*</span></label>
+              <input type="text" id="expert-firstname" placeholder="John" required
+                style="width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; color: #F3F4F6; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+            </div>
+            <div class="form-group">
+              <label for="expert-lastname" style="display: block; font-size: 13px; color: #9CA3AF; margin-bottom: 6px;">Last Name <span style="color: #EF4444;">*</span></label>
+              <input type="text" id="expert-lastname" placeholder="Doe" required
+                style="width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; color: #F3F4F6; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label for="expert-phone" style="display: block; font-size: 13px; color: #9CA3AF; margin-bottom: 6px;">Phone Number</label>
+            <input
+              type="tel"
+              id="expert-phone"
+              placeholder="+63 900 000 0000"
+              maxlength="20"
+              inputmode="numeric"
+              pattern="[+0-9\s\-()]*"
+              oninput="this.value=this.value.replace(/[^+0-9\s\-()]/g,'')"
+              style="width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; color: #F3F4F6; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
+            >
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label for="expert-email" style="display: block; font-size: 13px; color: #9CA3AF; margin-bottom: 6px;">Email Address <span style="color: #EF4444;">*</span></label>
+            <input type="email" id="expert-email" placeholder="expert@example.com" required
+              style="width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; color: #F3F4F6; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+            <span class="field-error-msg" id="error-expert-email" style="color: #EF4444; font-size: 12px; margin-top: 4px; display: block;"></span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label for="expert-password" style="display: block; font-size: 13px; color: #9CA3AF; margin-bottom: 6px;">Password <span style="color: #EF4444;">*</span></label>
+            <div style="position: relative;">
+              <input
+                type="password"
+                id="expert-password"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                required
+                style="width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; color: #F3F4F6; box-sizing: border-box; outline: none; transition: border-color 0.2s; padding-right: 40px;"
+              >
+              <button type="button" id="toggle-expert-password" aria-label="Toggle password visibility"
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6B7280; padding: 2px; display: flex; align-items: center; justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <!-- Password strength bar -->
+            <div id="password-strength-bar-wrap" style="margin-top: 6px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; display: none;">
+              <div id="password-strength-bar" style="height: 100%; width: 0; transition: width 0.3s, background 0.3s; border-radius: 2px;"></div>
+            </div>
+            <!-- Password requirements -->
+            <div id="pw-requirements" style="display: none; margin-top: 8px; font-size: 12px; line-height: 1.6; color: #9CA3AF;">
+              <div style="font-weight: 600; margin-bottom: 4px; color: #F3F4F6;">Password must contain:</div>
+              <div id="req-length" style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6B7280;">✓</span>
+                8+ characters
+              </div>
+              <div id="req-upper" style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6B7280;">✓</span>
+                Uppercase letter
+              </div>
+              <div id="req-lower" style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6B7280;">✓</span>
+                Lowercase letter
+              </div>
+              <div id="req-number" style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6B7280;">✓</span>
+                Number
+              </div>
+              <div id="req-special" style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6B7280;">✓</span>
+                Special character (!@#$%^&*)
+              </div>
+            </div>
+            <span class="field-error-msg" id="error-expert-password" style="color: #EF4444; font-size: 12px; margin-top: 4px; display: block;"></span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="expert-password-confirm" style="display: block; font-size: 13px; color: #9CA3AF; margin-bottom: 6px;">Confirm Password <span style="color: #EF4444;">*</span></label>
+            <div style="position: relative;">
+              <input
+                type="password"
+                id="expert-password-confirm"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                required
+                style="width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; color: #F3F4F6; box-sizing: border-box; outline: none; transition: border-color 0.2s; padding-right: 40px;"
+              >
+              <button type="button" id="toggle-expert-confirm" aria-label="Toggle confirm password visibility"
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6B7280; padding: 2px; display: flex; align-items: center; justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <span class="field-error-msg" id="error-expert-confirm" style="color: #EF4444; font-size: 12px; margin-top: 4px; display: block;"></span>
+          </div>
+
+          <div id="provision-error" style="display: none; margin-bottom: 16px; padding: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #EF4444; font-size: 14px;"></div>
+
+          <div style="display: flex; gap: 12px;">
+            <button type="button" id="btn-cancel-provision" style="flex: 1; padding: 12px; background: transparent; color: #9CA3AF; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Cancel</button>
+            <button type="submit" id="btn-submit-provision" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #6C63FF, #3ECFCF); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <span class="spinner" style="display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+              <span class="btn-text">Generate Account</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div id="user-drawer-overlay" aria-hidden="true"></div>
   <aside id="user-drawer" aria-hidden="true">
     <div class="user-drawer__header">
@@ -223,6 +369,7 @@
 
     <div class="user-drawer__badges">
       <span id="drawer-role-badge"></span>
+      <span id="drawer-protected-badge" style="display:none;"></span>
       <span id="drawer-status-badge"></span>
     </div>
 
@@ -238,6 +385,7 @@
       </div>
     </div>
 
+    <!-- Expert Activity Section -->
     <div class="user-drawer__section" id="drawer-activity-section" style="display:none;">
       <div class="user-drawer__section-title">Activity</div>
       <div class="user-drawer__kv">
@@ -246,7 +394,21 @@
       </div>
     </div>
 
-    <div class="user-drawer__section">
+    <!-- Admin Administrative Footprint Section -->
+    <div class="user-drawer__section" id="drawer-admin-activity-section" style="display:none;">
+      <div class="user-drawer__section-title">Administrative Footprint</div>
+      <div class="user-drawer__kv">
+        <div class="user-drawer__k">Accounts Provisioned</div>
+        <div class="user-drawer__v">—</div>
+      </div>
+      <div class="user-drawer__kv">
+        <div class="user-drawer__k">System Policy Logs</div>
+        <div class="user-drawer__v">—</div>
+      </div>
+    </div>
+
+    <!-- Expert Actions -->
+    <div class="user-drawer__section" id="drawer-expert-actions">
       <div class="user-drawer__section-title">Actions</div>
       <div class="user-drawer__actions">
         <button class="btn btn--ghost btn--sm" id="drawer-suspend-btn" data-user-id="" data-suspended="false">Suspend</button>
@@ -256,6 +418,18 @@
           <option value="admin">Admin</option>
         </select>
         <button class="btn btn--ghost btn--sm" id="drawer-password-reset-btn" data-email="">Send Password Reset Email</button>
+      </div>
+    </div>
+
+    <!-- Admin Security Safeguard -->
+    <div class="user-drawer__section" id="drawer-admin-actions" style="display:none;">
+      <div class="user-drawer__section-title">Actions</div>
+      <div class="user-drawer__safeguard">
+        <div class="safeguard-icon">🔒</div>
+        <div class="safeguard-text">
+          <strong>Administrative Security Safeguard:</strong>
+          Peer administrators are restricted to read-only view to prevent authorization lockouts.
+        </div>
       </div>
     </div>
   </aside>

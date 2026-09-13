@@ -46,11 +46,12 @@ async function loadAnalyticsData() {
       sumResolutionMs: 0,
       resolutionCount: 0,
       throughput24h: 0,
-      correctiveActions: 0,
-      complexTriage: 0,
+      totalResolved: 0,
+      verifiedSafe: 0,
+      confirmedThreat: 0,
       // Resolved-only charts
-      threatDist: { safe: 0, warning: 0, critical: 0 },
-      triageImpact: { confirmations: 0, overrides: 0, uncertainty: 0 }
+      threatDist: { warning: 0, critical: 0 },
+      triageImpact: { confirmations: 0, overrides: 0 }
     };
 
     const now = Date.now();
@@ -99,30 +100,35 @@ async function loadAnalyticsData() {
         }
       }
 
-      // Corrective Actions: expert disagreed with AI - ALL TIME
-      if (expertVerdict) {
-        if (aiIsThreat !== expertIsThreat) analyticsData.correctiveActions += 1;
+      // Count Total Resolved (all resolved reports by this expert)
+      analyticsData.totalResolved += 1;
+
+      // Verified Safe: resolved reports with safe verdict (backward compatible)
+      if (expertIsSafe) {
+        analyticsData.verifiedSafe += 1;
       }
 
-      // Complex Triage: AI Warning band - ALL TIME
-      if (aiWarning) analyticsData.complexTriage += 1;
+      // Confirmed Threat: resolved reports with threat verdict (backward compatible)
+      if (expertIsThreat) {
+        analyticsData.confirmedThreat += 1;
+      }
 
-      // Threat Distribution (exclusive, hybrid) - ALL TIME
+      // Threat Distribution - Only resolved cases by this expert, Warning and Critical only
       if (aiWarning) {
         analyticsData.threatDist.warning += 1;
-      } else if (expertIsThreat && aiCritical) {
+      } else if (aiCritical) {
         analyticsData.threatDist.critical += 1;
-      } else if (expertIsSafe) {
-        analyticsData.threatDist.safe += 1;
       }
 
-      // Triage Impact (exclusive stacks) - ALL TIME
-      if (aiWarning) {
-        analyticsData.triageImpact.uncertainty += 1;
-      } else if (expertVerdict) {
-        if (aiIsThreat === expertIsThreat) {
+      // Triage Impact: Confirmations vs Overrides (no uncertainty)
+      // AI marked as threat (warning or critical) and expert confirmed threat = Confirmation
+      // AI marked as threat (warning or critical) but expert verified safe = Override
+      if (aiIsThreat && expertVerdict) {
+        if (expertIsThreat) {
+          // AI said threat, Expert confirmed threat = Confirmation
           analyticsData.triageImpact.confirmations += 1;
-        } else {
+        } else if (expertIsSafe) {
+          // AI said threat, Expert said safe = Override
           analyticsData.triageImpact.overrides += 1;
         }
       }
@@ -138,8 +144,9 @@ async function loadAnalyticsData() {
       setTextContent('stat-analytics-avg-rt', String(analyticsData.throughput24h));
       if (labelEl) labelEl.textContent = 'Daily Throughput';
     }
-    setTextContent('stat-analytics-corrective', analyticsData.correctiveActions);
-    setTextContent('stat-analytics-complex', analyticsData.complexTriage);
+    setTextContent('stat-analytics-total-resolved', analyticsData.totalResolved);
+    setTextContent('stat-analytics-verified-safe', analyticsData.verifiedSafe);
+    setTextContent('stat-analytics-confirmed-threat', analyticsData.confirmedThreat);
 
     // Render charts
     setTimeout(() => {
@@ -169,10 +176,10 @@ function createTriageImpactChart(impact) {
 
   const textPrimary = getThemeColor('--clr-text-primary', '#E5E7EB');
 
-  // Vertical grouped bars: three categories on X, single dataset values
-  const labels = ['Confirmations', 'Overrides', 'Uncertainty'];
-  const data = [impact.confirmations, impact.overrides, impact.uncertainty];
-  const backgroundColors = ['#22c55e', '#ef4444', '#f59e0b'];
+  // Vertical grouped bars: two categories on X (Confirmations vs Overrides)
+  const labels = ['Confirmations', 'Overrides'];
+  const data = [impact.confirmations, impact.overrides];
+  const backgroundColors = ['#22c55e', '#ef4444'];
 
   triageImpactChart = new Chart(el, {
     type: 'bar',
@@ -206,15 +213,15 @@ function createThreatBarChart(buckets) {
   if (threatChart) threatChart.destroy();
 
   const textPrimary = getThemeColor('--clr-text-primary', '#E5E7EB');
-  const barColors = ['#22c55e', '#f59e0b', '#ef4444']; // green, amber, red
+  const barColors = ['#f59e0b', '#ef4444']; // amber, red
 
   threatChart = new Chart(el, {
     type: 'bar',
     data: {
-      labels: ['Safe', 'Warning', 'Critical'],
+      labels: ['Warning', 'Critical'],
       datasets: [{
         label: 'Reports',
-        data: [buckets.safe, buckets.warning, buckets.critical],
+        data: [buckets.warning, buckets.critical],
         backgroundColor: barColors,
         borderWidth: 0
       }]

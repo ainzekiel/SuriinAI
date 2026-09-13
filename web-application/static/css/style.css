@@ -325,6 +325,55 @@ a:hover { color: var(--clr-accent); text-decoration: underline; }
   opacity: 0.55;
 }
 
+/* Protected admin rows in admin tab - read-only view */
+.reports-table tbody tr.row--protected-admin {
+  background: rgba(108, 99, 255, 0.04);
+}
+.reports-table tbody tr.row--protected-admin td {
+  opacity: 0.9;
+}
+
+/* Clickable audit log rows */
+.reports-table tbody tr.row-clickable {
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.reports-table tbody tr.row-clickable:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.badge--info {
+  background: rgba(108, 99, 255, 0.15);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  color: var(--clr-accent-light);
+}
+
+/* Security safeguard box for admin accounts */
+.user-drawer__safeguard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(17, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md, 8px);
+  border-left: 3px solid rgba(108, 99, 255, 0.5);
+}
+.safeguard-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.safeguard-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--clr-text-muted);
+}
+.safeguard-text strong {
+  color: var(--clr-text-primary);
+  display: block;
+  margin-bottom: 4px;
+}
+
 .reports-table tbody tr.row--protected .role-select,
 .reports-table tbody tr.row--protected button[data-action="suspend"],
 .reports-table tbody tr.row--self .role-select,
@@ -347,6 +396,52 @@ a:hover { color: var(--clr-accent); text-decoration: underline; }
 #role-confirm-modal.modal--hidden {
   display: none !important;
   animation: none !important;
+}
+
+#createExpertModal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: expertModalFadeIn 0.2s ease both;
+}
+
+#createExpertModal.modal--hidden {
+  display: none !important;
+  animation: none !important;
+}
+
+@keyframes expertModalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+#createExpertModal .modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 18, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+#createExpertModal .modal__content {
+  position: relative;
+  z-index: 1;
+  background: #1A1928;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: min(90vw, 480px);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+  animation: expertModalSlideIn 0.25s ease both;
+}
+
+@keyframes expertModalSlideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes roleConfirmFadeIn {
@@ -382,6 +477,85 @@ a:hover { color: var(--clr-accent); text-decoration: underline; }
   width: 48px;
   height: 48px;
   border-radius: 50%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ADMIN INTELLIGENCE PAGE STYLES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.intelligence-section {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Search wrapper styling */
+.search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--clr-text-muted);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* Badge variations for intelligence page */
+.badge--danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge--warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge--info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge--success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* Empty state styling */
+.empty-state {
+  color: var(--clr-text-muted);
+  font-size: 0.95rem;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Toast animations */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+/* Role confirm modal icon */
+#role-confirm-modal .modal__icon {
   background: rgba(108, 99, 255, 0.12);
   border: 1px solid rgba(108, 99, 255, 0.3);
   display: flex;
@@ -1978,6 +2152,131 @@ body.drawer-open #user-drawer {
   min-width: 100%;
 }
 
+/* ── Event Drawer (Audit Logs) - Matches User Drawer styling ───────────────── */
+
+#event-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 8, 18, 0.58);
+  backdrop-filter: blur(6px);
+  z-index: 9998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+body.drawer-open #event-drawer-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#event-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(480px, 92vw);
+  background: var(--clr-bg-card);
+  border-left: 1px solid var(--clr-border);
+  z-index: 9999;
+  transform: translateX(105%);
+  transition: transform 220ms ease;
+  box-shadow: -24px 0 64px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg);
+  gap: var(--space-lg);
+  overflow-y: auto;
+}
+
+body.drawer-open #event-drawer {
+  transform: translateX(0);
+}
+
+.event-drawer__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.event-drawer__title {
+  font-size: var(--font-lg);
+  font-weight: 800;
+  color: var(--clr-text-primary);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.event-drawer__subtitle {
+  font-size: var(--font-sm);
+  color: var(--clr-text-secondary);
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.event-drawer__close {
+  border: 1px solid var(--clr-border);
+  background: transparent;
+  color: var(--clr-text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.event-drawer__close:hover {
+  background: var(--clr-bg-glass);
+  border-color: var(--clr-border-hover);
+  color: var(--clr-text-primary);
+}
+
+.event-drawer__section {
+  border-top: 1px solid var(--clr-border);
+  padding-top: var(--space-md);
+}
+
+.event-drawer__section-title {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--clr-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-md);
+}
+
+.event-drawer__kv {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--space-sm);
+  align-items: start;
+  margin-bottom: var(--space-sm);
+}
+
+.event-drawer__k {
+  font-size: var(--font-sm);
+  color: var(--clr-text-secondary);
+}
+
+.event-drawer__v {
+  font-size: var(--font-sm);
+  color: var(--clr-text-primary);
+  word-break: break-all;
+}
+
+.event-drawer__impact {
+  padding: var(--space-md);
+  background: rgba(108, 99, 255, 0.08);
+  border: 1px solid rgba(108, 99, 255, 0.2);
+  border-radius: var(--radius-md);
+  line-height: 1.6;
+  color: var(--clr-text-primary);
+  font-size: 0.9rem;
+}
+
 /* ── Stat card skeleton loading state ───────────────────────────────────────── */
 .stat-card__value.is-skeleton {
   color: transparent !important;
@@ -2199,7 +2498,19 @@ body.drawer-open #user-drawer {
   border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
+.badge--unassigned {
+  background: var(--clr-pending-bg);
+  color: var(--clr-pending);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
 .badge--investigating {
+  background: var(--clr-investigating-bg);
+  color: var(--clr-investigating);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.badge--review {
   background: var(--clr-investigating-bg);
   color: var(--clr-investigating);
   border: 1px solid rgba(59, 130, 246, 0.2);
@@ -3070,6 +3381,12 @@ body.drawer-open #user-drawer {
   border-color: rgba(34, 197, 94, 0.25);
 }
 
+.alert--danger {
+  background: var(--clr-critical-bg);
+  color: var(--clr-critical);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
 .text-muted {
   color: var(--clr-text-muted);
   font-style: italic;
@@ -3812,13 +4129,118 @@ body.drawer-open #user-drawer {
 .risk-score-badge {
   display: inline-flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  text-align: center;
-  border: 1px solid transparent;
-  min-width: 72px;
+}
+
+/* SEC Watchlist Table Specific Styles */
+#sec-table {
+  display: table !important;
+  width: 100% !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#sec-tbody {
+  display: table-row-group !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#sec-tbody tr {
+  display: table-row !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#sec-tbody td {
+  display: table-cell !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.table-responsive {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: auto !important;
+  height: auto !important;
+}
+
+/* SEC Modal Badge Styles - Using existing user/expert modal structure */
+.modal-badge {
+  margin: var(--space-md) 0;
+}
+
+.modal-field {
+  margin: var(--space-lg) 0;
+}
+
+.modal-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+  color: var(--clr-text-secondary);
+  font-size: var(--font-sm);
+}
+
+.modal-field p {
+  margin: 0;
+  color: var(--clr-text);
+  font-size: var(--font-base);
+}
+
+.modal-actions {
+  margin: var(--space-lg) 0;
+}
+
+.compliance-notice {
+  background: var(--clr-bg-tertiary);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-top: var(--space-lg);
+  height: auto;
+  min-height: auto;
+}
+
+.compliance-notice h4 {
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--clr-text-secondary);
+  font-size: var(--font-base);
+  font-weight: 600;
+}
+
+.compliance-notice p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--clr-text-muted);
+  font-size: var(--font-sm);
+}
+
+/* Enhanced Badge Styles for Modal */
+.badge--critical {
+  background: var(--clr-critical-bg);
+  color: var(--clr-critical);
+  border-color: rgba(239,68,68,0.25);
+  box-shadow: 0 0 12px rgba(239,68,68,0.2);
+  animation: glow-critical 2s ease-in-out infinite alternate;
+}
+
+.badge--warning {
+  background: var(--clr-warning-bg);
+  color: var(--clr-warning);
+  border-color: rgba(251,191,36,0.25);
+  box-shadow: 0 0 12px rgba(251,191,36,0.2);
+  animation: glow-warning 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow-critical {
+  from { box-shadow: 0 0 12px rgba(239,68,68,0.2); }
+  to { box-shadow: 0 0 20px rgba(239,68,68,0.4); }
+}
+
+@keyframes glow-warning {
+  from { box-shadow: 0 0 12px rgba(251,191,36,0.2); }
+  to { box-shadow: 0 0 20px rgba(251,191,36,0.4); }
 }
 .risk-score-badge__pct { font-size: var(--font-sm); font-weight: 800; line-height: 1; }
 .risk-score-badge__lbl { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }

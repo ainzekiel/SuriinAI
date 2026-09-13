@@ -220,43 +220,43 @@
             </linearGradient>
           </defs>
         </svg>
-        <span class="header-title">System Diagnostics</span>
+        <span class="header-title">Operational Triage Overview</span>
       </div>
     </header>
 
     <div class="admin-diag-body">
 
-      <div class="admin-diagnostics-card">
-        <div class="admin-diag-status-row">
-          <span class="admin-diag-dot" id="admin-system-dot"></span>
-          <span id="admin-system-status" class="admin-diagnostics-line">System Status: Checking...</span>
-        </div>
-        <div class="admin-diag-status-row">
-          <span class="admin-diag-dot" id="admin-ext-api-dot"></span>
-          <span id="admin-extension-api-status" class="admin-diagnostics-line">Extension API: Checking...</span>
-        </div>
-        <div class="admin-diag-status-row">
-          <span class="admin-diag-dot" id="admin-scan-api-dot"></span>
-          <span id="admin-scan-engine-api-status" class="admin-diagnostics-line">Scan Engine API: Checking...</span>
-        </div>
-        <div id="admin-last-checked" class="admin-diagnostics-meta">Last checked: —</div>
-      </div>
-
-      <div id="admin-scrape-test-card" class="admin-diagnostics-card hidden" style="margin-top: var(--space-md);">
-        <div id="admin-scrape-test-summary" class="admin-diagnostics-line">Last scraping test: —</div>
-      </div>
-
+      <!-- Signed in as - moved to top -->
       <div class="admin-diag-logged-in" id="admin-diag-user-info">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span id="admin-diag-email">Signed in as Admin</span>
       </div>
 
+      <!-- Operational Metrics Grid -->
+      <div class="admin-metrics-grid">
+        <div class="admin-metric-card" id="metric-unassigned">
+          <div class="admin-metric-value" id="metric-unassigned-value">—</div>
+          <div class="admin-metric-label">Unassigned Reports</div>
+          <div class="admin-metric-dot loading" id="metric-unassigned-dot"></div>
+        </div>
+        <div class="admin-metric-card" id="metric-investigation">
+          <div class="admin-metric-value" id="metric-investigation-value">—</div>
+          <div class="admin-metric-label">Under Investigation</div>
+          <div class="admin-metric-dot loading" id="metric-investigation-dot"></div>
+        </div>
+        <div class="admin-metric-card critical" id="metric-critical">
+          <div class="admin-metric-value" id="metric-critical-value">—</div>
+          <div class="admin-metric-label">Critical Threats Today</div>
+          <div class="admin-metric-dot loading" id="metric-critical-dot"></div>
+        </div>
+      </div>
+
     </div>
 
     <div class="admin-diag-actions">
-      <button id="btn-admin-run-scraping-test" class="btn btn-primary btn-full">
-        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        Run Scraping Test
+      <button id="btn-admin-open-analytics" class="btn btn-primary btn-full">
+        <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Open Admin Analytics
       </button>
       <button id="btn-admin-open-dashboard" class="btn btn-secondary btn-full" style="margin-top: var(--space-xs);">
         <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -401,7 +401,14 @@
       <div class="scan-result-item" data-layer="gov-records">
         <div class="scan-result-badge" data-emoji="🟢">🟢</div>
         <div class="scan-result-content">
-          <div class="scan-result-label">Official SEC / DTI Watchlist</div>
+          <div class="scan-result-label">Official SEC Watchlist</div>
+          <div class="scan-result-text">Clear</div>
+        </div>
+      </div>
+      <div class="scan-result-item" data-layer="whitelist-records">
+        <div class="scan-result-badge" data-emoji="🟢">🟢</div>
+        <div class="scan-result-content">
+          <div class="scan-result-label">Official SEC Whitelist</div>
           <div class="scan-result-text">Clear</div>
         </div>
       </div>
@@ -501,7 +508,7 @@
     </div>
 
     <!-- Suspect Handle / Name -->
-    <div class="form-group">
+    <div class="form-group" style="display: none !important;">
       <label class="form-label" for="report-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
       <input type="text" id="report-suspect-handle" class="form-input" placeholder="e.g., @scammer_name or Phone Number" />
     </div>
@@ -574,7 +581,7 @@
     </div>
 
     <!-- Suspect Handle / Name -->
-    <div class="form-group">
+    <div class="form-group" style="display: none !important;">
       <label class="form-label" for="review-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
       <input type="text" id="review-suspect-handle" class="form-input" placeholder="e.g., @scammer_name or Phone Number" />
     </div>
@@ -647,7 +654,7 @@
     </div>
 
     <!-- Suspect Handle / Name (maps to source_identifier) -->
-    <div class="form-group">
+    <div class="form-group" style="display: none !important;">
       <label class="form-label" for="expert-confirm-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
       <input type="text" id="expert-confirm-suspect-handle" class="form-input" placeholder="e.g., @scammer_name or Phone Number" />
     </div>
@@ -725,7 +732,7 @@
       <p class="form-prefill-text" id="expert-safe-prefill-text">—</p>
     </div>
 
-    <div class="form-group">
+    <div class="form-group" style="display: none !important;">
       <label class="form-label" for="expert-safe-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
       <input type="text" id="expert-safe-suspect-handle" class="form-input" placeholder="e.g., @username or Phone Number" />
     </div>
@@ -798,7 +805,7 @@
     </div>
 
     <!-- Suspect Handle / Name -->
-    <div class="form-group">
+    <div class="form-group" style="display: none !important;">
       <label class="form-label" for="investigate-suspect-handle">Suspect Handle / Name <span class="form-optional">(optional)</span></label>
       <input type="text" id="investigate-suspect-handle" class="form-input" placeholder="e.g., @scammer_name or Phone Number" />
     </div>
@@ -936,7 +943,7 @@
       </div>
 
       <!-- Suspect handle (global for individual mode) -->
-      <div class="form-group" id="mv-suspect-row" style="margin-top:8px;">
+      <div class="form-group" id="mv-suspect-row" style="margin-top:8px; display: none !important;">
         <label class="form-label" for="mv-suspect-handle">Suspect Handle <span class="form-optional">(optional)</span></label>
         <input type="text" id="mv-suspect-handle" class="form-input" placeholder="@username or Phone" />
       </div>

@@ -150,11 +150,11 @@
             <div class="stat-card__value is-skeleton" id="stat-total">0</div>
           </div>
           <div class="stat-card stat-card--warning">
-            <div class="stat-card__label is-skeleton">Under Review</div>
-            <div class="stat-card__value is-skeleton" id="stat-under-review">0</div>
+            <div class="stat-card__label is-skeleton">Under Investigation</div>
+            <div class="stat-card__value is-skeleton" id="stat-under-investigation">0</div>
           </div>
           <div class="stat-card stat-card--critical">
-            <div class="stat-card__label is-skeleton">Confirmed Scams</div>
+            <div class="stat-card__label is-skeleton">Confirmed Threat</div>
             <div class="stat-card__value is-skeleton" id="stat-confirmed">0</div>
           </div>
           <div class="stat-card stat-card--safe">
@@ -202,7 +202,7 @@
                   <th style="width: 15%; min-width: 100px;">Risk Score</th>
                   <th style="width: 15%; min-width: 130px;">Expert Verdict</th>
                   <th style="width: 15%; min-width: 130px;">Status</th>
-                  <th style="width: 15%; min-width: 140px; padding-right:1.75rem;">AI Score</th>
+                  <th style="width: 15%; min-width: 140px; padding-right:1.75rem;">Threat Level</th>
                 </tr>
               </thead>
               <tbody id="reports-tbody">
@@ -274,7 +274,7 @@
               <span class="modal-meta__label">Platform</span>
               <span class="modal-meta__value" id="modal-discovery-platform">—</span>
             </div>
-            <div class="modal-meta__item">
+            <div class="modal-meta__item" style="display: none !important;">
               <span class="modal-meta__label">Source Identifier</span>
               <span class="modal-meta__value" id="modal-source-identifier">—</span>
             </div>
@@ -345,9 +345,16 @@
               <span class="modal-meta__label">Assigned To</span>
               <span class="modal-meta__value" id="modal-assigned-to">—</span>
             </div>
+            <div class="modal-meta__item" id="modal-resolved-at-item" style="display:none;">
+              <span class="modal-meta__label">Resolved At</span>
+              <span class="modal-meta__value" id="modal-resolved-at">—</span>
+            </div>
           </div>
           <div id="modal-safe-alert" class="alert alert--success" style="display:none; margin-bottom: var(--space-md);">
             Investigation Complete: This platform has been verified as safe by our forensic team.
+          </div>
+          <div id="modal-threat-alert" class="alert alert--danger" style="display:none; margin-bottom: var(--space-md);">
+            Investigation Complete: This threat has been confirmed by our forensic team.
           </div>
           <div id="modal-safety-justification-wrapper" style="display:none; margin-bottom: var(--space-md);">
             <span class="modal-meta__label" style="display:block; margin-bottom:var(--space-xs);">Safety Justification</span>
@@ -371,6 +378,14 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Modal Footer with PDF Download -->
+      <div class="modal-footer" style="display: flex; justify-content: center; align-items: center; padding: var(--space-md) var(--space-lg); border-top: 1px solid var(--clr-border);">
+        <button type="button" id="modal-download-pdf" class="btn btn--primary btn--sm" style="display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="btn-text">Generate Evidence PDF</span>
+        </button>
       </div>
     </div>
   </div>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Suriin AI - Threat Intelligence & Training Data">
+  <title>Suriin AI - Threat Intelligence</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard-wrapper" style="display:none;">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="dashboard-header">
+      <div class="header-brand">
+        <div class="header-brand__icon" aria-hidden="true">🛡️</div>
+        <span class="header-brand__name">Suriin AI</span>
+        <span class="header-brand__role admin-role-badge">Admin</span>
+      </div>
+      <div class="header-user">
+        <div class="header-user__meta">
+          <span class="header-user__email" id="user-email"></span>
+        </div>
+
+        <div class="header-user__actions">
+          <!-- ── Notification Bell ──────────────────────────────── -->
+          <div class="notification-bell" id="notification-bell-container">
+            <button class="notification-bell__btn" id="notification-bell-btn" aria-label="Notifications">
+              <span class="notification-bell__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#6C63FF;display:block;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </span>
+              <span class="notification-bell__badge" id="notification-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Notification Dropdown -->
+            <div class="notification-dropdown" id="notification-dropdown" style="display: none;">
+              <div class="notification-dropdown__header">
+                <h3>Notifications</h3>
+                <button class="notification-dropdown__mark-all" id="mark-all-read-btn" style="display: none;">
+                  Mark all as read
+                </button>
+              </div>
+
+              <div class="notification-dropdown__list" id="notification-list">
+                <!-- Notifications populated here by JavaScript -->
+              </div>
+
+              <div class="notification-dropdown__empty" id="notification-empty" style="display: none;">
+                <div class="notification-empty__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;opacity:0.5;display:block;">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </div>
+                <p>No notifications</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Avatar + Dropdown ──────────────────────── -->
+          <div class="avatar-menu" id="avatar-menu">
+            <div class="header-user__avatar" id="user-avatar" role="button" aria-haspopup="true" aria-expanded="false" title="Account menu"></div>
+            <div class="avatar-dropdown" id="avatar-dropdown" style="display:none;">
+              <div class="avatar-dropdown__user-info" id="avatar-dropdown-user-info"></div>
+              <div class="avatar-dropdown__divider"></div>
+              <a href="/admin-dashboard" class="avatar-dropdown__item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Dashboard
+              </a>
+              <a href="/admin-settings" class="avatar-dropdown__item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+              </a>
+              <div class="avatar-dropdown__divider"></div>
+              <button class="avatar-dropdown__item avatar-dropdown__item--danger" id="avatar-logout-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Layout: Sidebar + Main ──────────────────────────────────────── -->
+    <div class="dashboard-layout">
+
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <a href="/admin-dashboard" class="sidebar-link" id="nav-dashboard">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </span>
+            <span class="sidebar-link__text">Dashboard</span>
+          </a>
+          <a href="/admin-users" class="sidebar-link" id="nav-users">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span class="sidebar-link__text">Expert Management</span>
+          </a>
+          <a href="/admin-audit-logs" class="sidebar-link" id="nav-audit">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            <span class="sidebar-link__text">Audit Logs</span>
+          </a>
+          <a href="/admin-analytics" class="sidebar-link" id="nav-analytics">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            </span>
+            <span class="sidebar-link__text">Threat Analytics</span>
+          </a>
+          <a href="/admin-intelligence" class="sidebar-link sidebar-link--active" id="nav-intelligence">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1M6.343 4.343l-.707-.707M18.364 4.343l.707-.707M4 12h1M20 12h1M12 20v1"/><circle cx="12" cy="12" r="4"/></svg>
+            </span>
+            <span class="sidebar-link__text">Threat Intelligence</span>
+          </a>
+          <div class="sidebar-divider"></div>
+          <a href="/admin-settings" class="sidebar-link" id="nav-settings">
+            <span class="sidebar-link__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"/></svg>
+            </span>
+            <span class="sidebar-link__text">Settings</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="dashboard-main">
+        <h1 class="dashboard-title">Threat Intelligence & Training Data</h1>
+        <p class="dashboard-subtitle">SEC advisories and AI training corpus management</p>
+
+        <!-- Tab Navigation -->
+        <div class="user-tabs" style="margin-bottom: var(--space-lg);">
+          <button class="user-tab user-tab--active" data-tab="sec-watchlist" id="tab-sec">
+            <span>SEC National Advisories</span>
+            <span class="user-tab__count" id="sec-count">0</span>
+          </button>
+          <button class="user-tab" data-tab="sec-whitelist" id="tab-whitelist">
+            <span>SEC Registered Whitelist</span>
+            <span class="user-tab__count" id="whitelist-count">0</span>
+          </button>
+          <button class="user-tab" data-tab="training-corpus" id="tab-corpus">
+            <span>AI Training Corpus</span>
+            <span class="user-tab__count" id="corpus-count">0</span>
+          </button>
+        </div>
+
+        <!-- SEC Watchlist Section -->
+        <section id="sec-section" class="intelligence-section" style="display: block;">
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+            <h2 class="section-title">SEC National Advisories</h2>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="audit-toolbar" style="margin-bottom: var(--space-lg);">
+            <div class="search-wrapper" style="max-width: 400px;">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="sec-search" class="form-input" placeholder="Search company name..." style="padding-left: 36px;">
+            </div>
+          </div>
+
+          <!-- SEC Table -->
+          <div class="table-responsive" style="border: 1px solid var(--clr-border); border-radius: var(--radius-lg); overflow: hidden;">
+            <table class="reports-table" id="sec-table" style="table-layout: fixed; width: 100%;">
+              <thead>
+                <tr>
+                  <th style="width: 40%;">Company Name</th>
+                  <th style="width: 30%;">Category</th>
+                  <th style="width: 30%;">Date Scraped</th>
+                </tr>
+              </thead>
+              <tbody id="sec-tbody">
+                <tr class="skeleton-row"><td colspan="3"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="3"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="3"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+              </tbody>
+            </table>
+            <div id="sec-empty" class="empty-state" style="display: block; padding: var(--space-xl); text-align: center;">
+              <div class="empty-state__icon">📋</div>
+              <div class="empty-state__title">No SEC advisories found</div>
+              <div class="empty-state__desc">SEC watchlist data will appear here once the scraper runs.</div>
+            </div>
+          </div>
+
+          <!-- SEC Pagination -->
+          <div class="pagination-footer" id="sec-pagination" style="display: none; justify-content: center; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--clr-border);">
+            <button class="btn btn--ghost btn--sm" id="sec-pagination-prev" style="display: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="m15 18-6-6 6-6"/></svg>
+              Previous
+            </button>
+            <div id="sec-pagination-numbers" style="display: flex; gap: 4px; align-items: center;"></div>
+            <button class="btn btn--ghost btn--sm" id="sec-pagination-next" style="display: none;">
+              Next
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- SEC Whitelist Section (Legitimate Registered Entities) -->
+        <section id="whitelist-section" class="intelligence-section" style="display: none;">
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+            <div>
+              <h2 class="section-title">SEC Legitimate Registered Companies</h2>
+              <p style="color: #9898B2; font-size: 0.875rem; margin-top: 4px;">Verified active entities registered with SEC Philippines (Quota Capped: Max 100 items)</p>
+            </div>
+            <button id="btn-sync-whitelist" class="btn btn--primary btn--sm">
+              <span>🔄</span>
+              <span>Sync Whitelist</span>
+            </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="audit-toolbar" style="margin-bottom: var(--space-lg);">
+            <div class="search-wrapper" style="max-width: 400px;">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="whitelist-search" class="form-input" placeholder="Search legitimate company..." style="padding-left: 36px;">
+            </div>
+          </div>
+
+          <!-- Whitelist Table -->
+          <div class="table-responsive" style="border: 1px solid var(--clr-border); border-radius: var(--radius-lg); overflow: hidden;">
+            <table class="reports-table" id="whitelist-table" style="table-layout: fixed; width: 100%;">
+              <thead>
+                <tr>
+                  <th style="width: 35%;">Company Name</th>
+                  <th style="width: 25%;">SEC Reg. No.</th>
+                  <th style="width: 25%;">Category / Industry</th>
+                  <th style="width: 15%;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="whitelist-tbody">
+                <tr class="skeleton-row"><td colspan="4"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="4"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="4"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+              </tbody>
+            </table>
+            <div id="whitelist-empty" class="empty-state" style="display: none; padding: var(--space-xl); text-align: center;">
+              <div class="empty-state__icon">🏢</div>
+              <div class="empty-state__title">No legitimate companies found</div>
+              <div class="empty-state__desc">SEC whitelist data will appear here once loaded.</div>
+            </div>
+          </div>
+
+          <!-- Whitelist Pagination -->
+          <div class="pagination-footer" id="whitelist-pagination" style="display: none; justify-content: center; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--clr-border);">
+            <button class="btn btn--ghost btn--sm" id="whitelist-pagination-prev" style="display: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="m15 18-6-6 6-6"/></svg>
+              Previous
+            </button>
+            <div id="whitelist-pagination-numbers" style="display: flex; gap: 4px; align-items: center;"></div>
+            <button class="btn btn--ghost btn--sm" id="whitelist-pagination-next" style="display: none;">
+              Next
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Training Corpus Section -->
+        <section id="corpus-section" class="intelligence-section" style="display: none;">
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); flex-wrap: wrap; gap: var(--space-sm);">
+            <h2 class="section-title">AI Training Corpus</h2>
+            <button id="btn-export-jsonl" class="btn btn--primary">
+              <span>📥</span>
+              <span>Export Corpus</span>
+            </button>
+          </div>
+
+          <!-- Migration Status -->
+          <div id="migration-status" class="alert alert--info" style="display: none; margin-bottom: var(--space-md); padding: var(--space-md); background: rgba(62, 207, 207, 0.1); border: 1px solid rgba(62, 207, 207, 0.3); border-radius: var(--radius-md);">
+            <span id="migration-message">Migrating data...</span>
+          </div>
+
+          <!-- Corpus Table -->
+          <div class="table-responsive" style="border: 1px solid var(--clr-border); border-radius: var(--radius-lg); overflow: hidden;">
+            <table class="reports-table" id="corpus-table" style="table-layout: fixed; width: 100%;">
+              <thead>
+                <tr>
+                  <th style="width: 50%;">Anonymized Text</th>
+                  <th style="width: 25%;">Classification</th>
+                  <th style="width: 25%;">Date</th>
+                </tr>
+              </thead>
+              <tbody id="corpus-tbody">
+                <tr class="skeleton-row"><td colspan="3"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="3"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="3"><div class="skeleton-cell" style="background: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 75%); background-size: 600px 100%; height: 16px; border-radius: 4px;"></div></td></tr>
+              </tbody>
+            </table>
+            <div id="corpus-empty" class="empty-state" style="display: none; padding: var(--space-xl); text-align: center; color: var(--clr-text-secondary);">
+              <p style="color: #9898B2;">No training data available. Data is generated when experts resolve reports.</p>
+            </div>
+          </div>
+
+          <!-- Corpus Pagination -->
+          <div class="pagination-footer" id="corpus-pagination" style="display: none; justify-content: center; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--clr-border);">
+            <button class="btn btn--ghost btn--sm" id="corpus-pagination-prev" style="display: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="m15 18-6-6 6-6"/></svg>
+              Previous
+            </button>
+            <div id="corpus-pagination-numbers" style="display: flex; gap: 4px; align-items: center;"></div>
+            <button class="btn btn--ghost btn--sm" id="corpus-pagination-next" style="display: none;">
+              Next
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- SEC Detail Modal -->
+  <div class="modal-overlay" id="sec-detail-modal" style="display:none;">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 class="modal-header__title">Entity Details</h2>
+        <button class="modal-close" onclick="closeSecDetailModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Dynamic content will be inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase & Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notification-bell.js"></script>
+  <script src="/static/js/admin-intelligence.js"></script>
+</body>
+</html>

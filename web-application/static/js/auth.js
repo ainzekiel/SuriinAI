@@ -34,6 +34,22 @@ try {
   authInstance = firebase.auth();
   dbInstance = firebase.firestore();
   
+  // Enable offline persistence for better performance and reduced Firestore reads
+  dbInstance.enablePersistence({
+    synchronizeTabs: true,
+    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+  }).then(() => {
+    console.log('[SuriinAI] Firestore offline persistence enabled');
+  }).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('[SuriinAI] Firestore persistence failed: Multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      console.warn('[SuriinAI] Firestore persistence not available in this browser');
+    } else {
+      console.error('[SuriinAI] Firestore persistence error:', err);
+    }
+  });
+  
   // Expose Firebase instances immediately for dashboard pages (before auth callbacks fire)
   window.__suriinAuth = null;
   window.__suriinFirestore = dbInstance;

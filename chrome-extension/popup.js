@@ -135,18 +135,15 @@ const modalAutoScanConsent = document.getElementById('modal-autoscan-consent');
 const btnConsentAgree      = document.getElementById('btn-consent-agree');
 const btnConsentCancel     = document.getElementById('btn-consent-cancel');
 
-// Admin diagnostics view
-const adminSystemStatusLine = document.getElementById('admin-system-status');
-const adminExtensionApiStatusLine = document.getElementById('admin-extension-api-status');
-const adminScanEngineApiStatusLine = document.getElementById('admin-scan-engine-api-status');
-const adminLastCheckedLine = document.getElementById('admin-last-checked');
-const adminScrapeTestCard = document.getElementById('admin-scrape-test-card');
-const adminScrapeTestSummary = document.getElementById('admin-scrape-test-summary');
-const btnAdminRunScrapingTest = document.getElementById('btn-admin-run-scraping-test');
+// Admin diagnostics view (Operational Triage Overview metrics)
+const metricUnassignedValue = document.getElementById('metric-unassigned-value');
+const metricInvestigationValue = document.getElementById('metric-investigation-value');
+const metricCriticalValue = document.getElementById('metric-critical-value');
+const metricUnassignedDot = document.getElementById('metric-unassigned-dot');
+const metricInvestigationDot = document.getElementById('metric-investigation-dot');
+const metricCriticalDot = document.getElementById('metric-critical-dot');
+const btnAdminOpenAnalytics = document.getElementById('btn-admin-open-analytics');
 const btnAdminOpenDashboard = document.getElementById('btn-admin-open-dashboard');
-const adminSystemDot = document.getElementById('admin-system-dot');
-const adminExtApiDot = document.getElementById('admin-ext-api-dot');
-const adminScanApiDot = document.getElementById('admin-scan-api-dot');
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 
@@ -435,7 +432,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       message: autoModeScanResult.message || 'Scan result from auto-mode',
       breakdown: autoModeScanResult.breakdown || null,
       watchlist: autoModeScanResult.watchlist || null,
+      whitelist: autoModeScanResult.whitelist || null,
       ai_scan: autoModeScanResult.ai_scan || null,
+      sec_watchlist_hits: autoModeScanResult.sec_watchlist_hits || [],
+      sec_whitelist_hits: autoModeScanResult.sec_whitelist_hits || [],
       matched_company: autoModeScanResult.watchlist?.matched_company || null,
       ai_confidence: autoModeScanResult.ai_scan?.ai_confidence || 0,
       trigger_tokens: Array.isArray(autoModeScanResult.ai_scan?.trigger_tokens) ? autoModeScanResult.ai_scan.trigger_tokens : [],
@@ -673,8 +673,8 @@ function attachEventListeners() {
   btnScan.addEventListener('click', handleScanTriggered);
 
   // ── Admin Diagnostics ──
-  if (btnAdminRunScrapingTest) {
-    btnAdminRunScrapingTest.addEventListener('click', handleAdminRunScrapingTest);
+  if (btnAdminOpenAnalytics) {
+    btnAdminOpenAnalytics.addEventListener('click', handleAdminOpenAnalytics);
   }
   if (btnAdminOpenDashboard) {
     btnAdminOpenDashboard.addEventListener('click', () => {
@@ -1119,99 +1119,74 @@ async function initAdminDiagnosticsView() {
       emailEl.textContent = `Signed in as ${stored.suriin_user_email}`;
     }
   } catch (e) {}
-  await runAdminLiveChecks();
+  await fetchOperationalMetrics();
 }
 
-function setAdminDiagnosticsLine(el, text, state, dotEl) {
-  if (!el) return;
-  el.textContent = text;
-  el.classList.remove('admin-diagnostics-ok', 'admin-diagnostics-bad', 'admin-diagnostics-checking');
-  if (state) el.classList.add(state);
-  if (dotEl) {
-    dotEl.classList.remove('dot-ok', 'dot-bad', 'dot-warn');
-    if (state === 'admin-diagnostics-ok')  dotEl.classList.add('dot-ok');
-    if (state === 'admin-diagnostics-bad') dotEl.classList.add('dot-bad');
-    if (state === 'admin-diagnostics-checking') { /* neutral grey */ }
+function setMetricLoadingState() {
+  // Set all metrics to loading state
+  if (metricUnassignedValue) { metricUnassignedValue.textContent = '—'; metricUnassignedValue.classList.add('loading'); }
+  if (metricInvestigationValue) { metricInvestigationValue.textContent = '—'; metricInvestigationValue.classList.add('loading'); }
+  if (metricCriticalValue) { metricCriticalValue.textContent = '—'; metricCriticalValue.classList.add('loading'); }
+
+  // Set dots to loading animation
+  if (metricUnassignedDot) metricUnassignedDot.className = 'admin-metric-dot loading';
+  if (metricInvestigationDot) metricInvestigationDot.className = 'admin-metric-dot loading';
+  if (metricCriticalDot) metricCriticalDot.className = 'admin-metric-dot loading';
+}
+
+function setMetricValues(metrics) {
+  // Update metric values
+  if (metricUnassignedValue) {
+    metricUnassignedValue.textContent = metrics.unassigned_queue ?? 0;
+    metricUnassignedValue.classList.remove('loading');
   }
-}
-
-async function runAdminLiveChecks() {
-  setAdminDiagnosticsLine(adminSystemStatusLine, 'System Status: Checking...', 'admin-diagnostics-checking', adminSystemDot);
-  setAdminDiagnosticsLine(adminExtensionApiStatusLine, 'Extension API: Checking...', 'admin-diagnostics-checking', adminExtApiDot);
-  setAdminDiagnosticsLine(adminScanEngineApiStatusLine, 'Scan Engine API: Checking...', 'admin-diagnostics-checking', adminScanApiDot);
-
-  const nowLabel = (() => {
-    try { return new Date().toLocaleString(); } catch { return String(new Date()); }
-  })();
-
-  const [systemOk, extensionOk, scanEngineOk] = await Promise.all([
-    probeWebAppHealth(),
-    probeExtensionApi(),
-    probeScanEngineApi()
-  ]);
-
-  setAdminDiagnosticsLine(
-    adminSystemStatusLine,
-    systemOk ? 'System Status: Online' : 'System Status: Offline',
-    systemOk ? 'admin-diagnostics-ok' : 'admin-diagnostics-bad',
-    adminSystemDot
-  );
-  setAdminDiagnosticsLine(
-    adminExtensionApiStatusLine,
-    extensionOk ? 'Extension API: Connected' : 'Extension API: Disconnected',
-    extensionOk ? 'admin-diagnostics-ok' : 'admin-diagnostics-bad',
-    adminExtApiDot
-  );
-  setAdminDiagnosticsLine(
-    adminScanEngineApiStatusLine,
-    scanEngineOk ? 'Scan Engine API: Connected' : 'Scan Engine API: Disconnected',
-    scanEngineOk ? 'admin-diagnostics-ok' : 'admin-diagnostics-bad',
-    adminScanApiDot
-  );
-
-  if (adminLastCheckedLine) {
-    adminLastCheckedLine.textContent = `Last checked: ${nowLabel}`;
+  if (metricInvestigationValue) {
+    metricInvestigationValue.textContent = metrics.under_investigation ?? 0;
+    metricInvestigationValue.classList.remove('loading');
   }
+  if (metricCriticalValue) {
+    metricCriticalValue.textContent = metrics.critical_threats_today ?? 0;
+    metricCriticalValue.classList.remove('loading');
+  }
+
+  // Update dots to ready state
+  if (metricUnassignedDot) metricUnassignedDot.className = 'admin-metric-dot ready';
+  if (metricInvestigationDot) metricInvestigationDot.className = 'admin-metric-dot ready';
+  if (metricCriticalDot) metricCriticalDot.className = 'admin-metric-dot ready';
 }
 
-async function probeWebAppHealth() {
+async function fetchOperationalMetrics() {
+  setMetricLoadingState();
+
   try {
-    const res = await fetch(`${WEB_APP_URL}/api/health`, {
+    const res = await fetch(`${WEB_APP_URL}/api/management-summary`, {
       method: 'GET',
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(10000)
     });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
 
-async function probeExtensionApi() {
-  try {
-    const res = await fetch(`${WEB_APP_URL}/api/extension/status`, {
-      method: 'GET',
-      signal: AbortSignal.timeout(3000)
-    });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
     const data = await res.json().catch(() => null);
-    const status = String(data?.status || '').trim().toLowerCase();
-    return status === 'online';
-  } catch {
-    return false;
+
+    if (data && data.success && data.metrics) {
+      setMetricValues(data.metrics);
+    } else {
+      // Fallback: show zeros if data is malformed
+      setMetricValues({ unassigned_queue: 0, under_investigation: 0, critical_threats_today: 0 });
+    }
+  } catch (err) {
+    // On error, show error state
+    if (metricUnassignedValue) metricUnassignedValue.textContent = '!';
+    if (metricInvestigationValue) metricInvestigationValue.textContent = '!';
+    if (metricCriticalValue) metricCriticalValue.textContent = '!';
   }
 }
 
-async function probeScanEngineApi() {
-  try {
-    await fetch(API_ENDPOINT, {
-      method: 'GET',
-      mode: 'no-cors',
-      signal: AbortSignal.timeout(3000)
-    });
-    return true;
-  } catch {
-    return false;
-  }
+async function handleAdminOpenAnalytics() {
+  // Route the manager straight to the admin analytics page
+  chrome.tabs.create({ url: `${WEB_APP_URL}/admin-analytics` });
 }
 
 async function extractViewportTextFromActiveTab() {
@@ -1230,38 +1205,6 @@ async function extractViewportTextFromActiveTab() {
     const text = extractionResults?.[0]?.result ?? '';
     return { text, url: tab.url || '' };
   }
-}
-
-async function handleAdminRunScrapingTest() {
-  if (adminScrapeTestCard) adminScrapeTestCard.classList.remove('hidden');
-  if (adminScrapeTestSummary) adminScrapeTestSummary.textContent = 'Last scraping test: Running...';
-
-  try {
-    const { text: rawText } = await extractViewportTextFromActiveTab();
-    const text = String(rawText || '').slice(0, 50000);
-    if (!text || text.trim().length < 5) {
-      throw new Error('Could not extract visible text from this page.');
-    }
-
-    const resp = await chrome.runtime.sendMessage({ action: 'MOCK_SCAN', text });
-    if (!resp?.success) {
-      throw new Error(resp?.error || 'Mock scan failed.');
-    }
-
-    const status = String(resp.status || resp.riskLevel || 'warning').trim().toLowerCase();
-    const score = typeof resp.score === 'number' ? resp.score : null;
-    const scoreLabel = score === null ? '' : ` (${Math.round(score)}%)`;
-
-    if (adminScrapeTestSummary) {
-      adminScrapeTestSummary.textContent = `Last scraping test: ${status}${scoreLabel}`;
-    }
-  } catch (err) {
-    if (adminScrapeTestSummary) {
-      adminScrapeTestSummary.textContent = `Last scraping test: Failed (${err.message})`;
-    }
-  }
-
-  await runAdminLiveChecks();
 }
 
 /**
@@ -1287,6 +1230,7 @@ function refreshRoleBasedUI() {
           scorePct: Number.isFinite(lastScanData.scorePct) ? lastScanData.scorePct : undefined,
           watchlist: lastScanData.watchlist || null,
           ai_scan: lastScanData.ai_scan || null,
+          sec_watchlist_hits: lastScanData.sec_watchlist_hits || [],
           message: lastScanData.message
         },
         lastScanData.text
@@ -1462,19 +1406,61 @@ async function handleScanTriggered() {
   try {
     showLoadingState(true);
 
+    // CRITICAL FIX: Clear last scan data to prevent stale watchlist data
+    lastScanData = null;
+
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab || !tab.id) throw new Error('No active tab found.');
 
     if (currentScanMode === 'manual') {
-      let resp;
+      // Phase 1: Start scan and get scanId
+      let startResp;
       try {
-        resp = await chrome.tabs.sendMessage(tab.id, { action: 'SCAN_CURRENT_CHAT' });
+        startResp = await chrome.tabs.sendMessage(tab.id, { action: 'SCAN_CURRENT_CHAT' });
       } catch {
         throw new Error('Could not reach the page content script. Refresh the page and try again.');
       }
 
-      if (!resp?.success) {
-        throw new Error(resp?.error || 'Chat scan failed.');
+      if (!startResp?.success || !startResp.scanId) {
+        throw new Error(startResp?.error || 'Failed to start chat scan.');
+      }
+
+      const scanId = startResp.scanId;
+
+      // Phase 2: Poll for results (max 30 seconds)
+      let pollCount = 0;
+      const maxPolls = 60; // 60 * 500ms = 30 seconds
+      const pollInterval = 500; // 500ms between polls
+
+      let resp = null;
+      while (pollCount < maxPolls) {
+        await new Promise(r => setTimeout(r, pollInterval));
+        pollCount++;
+
+        try {
+          const pollResp = await chrome.tabs.sendMessage(tab.id, {
+            action: 'GET_SCAN_RESULT',
+            scanId
+          });
+
+          if (pollResp?.success && pollResp.overallStatus) {
+            resp = pollResp;
+            break; // Got final result
+          }
+
+          if (pollResp?.success === false && pollResp.error) {
+            throw new Error(pollResp.error);
+          }
+
+          // Still pending, continue polling
+        } catch (e) {
+          console.warn('[SuriinAI] Poll error:', e);
+          // Continue polling, don't throw yet
+        }
+      }
+
+      if (!resp) {
+        throw new Error('Chat scan timed out after 30 seconds.');
       }
 
       const threatCount = Number(resp.threatCount || 0);
@@ -1487,12 +1473,37 @@ async function handleScanTriggered() {
       const flaggedResults = Array.isArray(resp.flaggedResults) ? resp.flaggedResults : [];
       const threadBreakdown = Array.isArray(resp.threadBreakdown) ? resp.threadBreakdown : [];
       const breakdownText = formatThreadBreakdown(threadBreakdown, flaggedResults, total);
+
+      // Aggregate sec_watchlist_hits from all flagged results and the dedicated field
+      const allSecHits = [];
+      // First, collect from the dedicated field passed by content.js
+      if (resp.worstResultSecHits && Array.isArray(resp.worstResultSecHits)) {
+        allSecHits.push(...resp.worstResultSecHits);
+      }
+      // Also collect from individual flagged results
+      for (const r of flaggedResults) {
+        if (r.sec_watchlist_hits && r.sec_watchlist_hits.length > 0) {
+          allSecHits.push(...r.sec_watchlist_hits);
+        }
+      }
+      // Deduplicate by matched_name
+      const seen = new Set();
+      const uniqueHits = [];
+      for (const hit of allSecHits) {
+        const key = hit.matched_name || hit.matched_with || JSON.stringify(hit);
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueHits.push(hit);
+        }
+      }
+
       const scanResult = {
         status,
         scorePct,
         confidence: scorePct / 100,
         watchlist: worstResult?.watchlist || null,
         ai_scan: worstResult?.ai_scan || null,
+        sec_watchlist_hits: uniqueHits,
         breakdown: generateFallbackBreakdown(status),
         message: total === 0
           ? 'No chat messages detected to scan.'
@@ -1510,7 +1521,10 @@ async function handleScanTriggered() {
         status: scanResult.status,
         message: scanResult.message,
         watchlist: worstResult?.watchlist || null,
+        whitelist: worstResult?.whitelist || null,
         ai_scan: worstResult?.ai_scan || null,
+        sec_watchlist_hits: uniqueHits,
+        sec_whitelist_hits: worstResult?.sec_whitelist_hits || [],
         matched_company: worstResult?.watchlist?.matched_company || null,
         ai_confidence:   typeof worstResult?.ai_scan?.ai_confidence === 'number' ? worstResult.ai_scan.ai_confidence : 0,
         trigger_tokens:  Array.isArray(worstResult?.ai_scan?.trigger_tokens) ? worstResult.ai_scan.trigger_tokens : [],
@@ -1562,7 +1576,9 @@ async function handleScanTriggered() {
       return;
     }
 
-    const scanResult = await callScanAPI(sanitizedText);
+    // Normalize highlight text for API payloads
+const normalizedText = sanitizedText.replace(/[\r\n]+/g, ' ').trim();
+const scanResult = await callScanAPI(normalizedText);
 
     // Store scan data for report pre-fill (no persistence for highlight/page mode)
     lastScanData = {
@@ -1573,7 +1589,10 @@ async function handleScanTriggered() {
       status: scanResult.status,
       message: scanResult.message,
       watchlist: scanResult.watchlist || null,
-      ai_scan: scanResult.ai_scan || null
+      whitelist: scanResult.whitelist || null,
+      ai_scan: scanResult.ai_scan || null,
+      sec_watchlist_hits: scanResult.sec_watchlist_hits || [],
+      sec_whitelist_hits: scanResult.sec_whitelist_hits || []
     };
 
     showLoadingState(false);
@@ -1662,7 +1681,10 @@ async function callScanAPI(text) {
 
     // Dual-layer payload (preferred)
     const watchlist = data.watchlist && typeof data.watchlist === 'object' ? data.watchlist : null;
+    const whitelist = data.whitelist && typeof data.whitelist === 'object' ? data.whitelist : null;
     const aiScan = data.ai_scan && typeof data.ai_scan === 'object' ? data.ai_scan : null;
+    const secWatchlistHits = Array.isArray(data.sec_watchlist_hits) ? data.sec_watchlist_hits : [];
+    const secWhitelistHits = Array.isArray(data.sec_whitelist_hits) ? data.sec_whitelist_hits : [];
 
     // Optional breakdown fallback (2 keys only)
     const breakdown = data.breakdown && typeof data.breakdown === 'object'
@@ -1674,7 +1696,11 @@ async function callScanAPI(text) {
       scorePct,
       confidence: scorePct / 100,
       watchlist,
+      whitelist,
       ai_scan: aiScan,
+      sec_watchlist_hits: secWatchlistHits,
+      sec_whitelist_hits: secWhitelistHits,
+      matched_company: watchlist?.matched_company || whitelist?.matched_company || null,
       breakdown,
       message: data.message ?? 'Analysis complete.'
     };
@@ -1729,7 +1755,14 @@ function formatThreadBreakdown(threadBreakdown, flaggedResults, total) {
 }
 
 function renderResult(result, originalText, opts = {}) {
+  // CRITICAL FIX: Explicitly reset warning styles and background variables
   viewResult.classList.remove('result-safe', 'result-warning', 'result-critical');
+  viewResult.style.setProperty('--result-bg', '');
+  viewResult.style.setProperty('--result-accent', '');
+
+  // Reset result icon and label to defaults
+  resultIcon.innerHTML = '';
+  resultLabel.textContent = 'Analyzing...';
 
   const labelEl = document.querySelector('.scanned-text-label');
   if (labelEl) {
@@ -1762,20 +1795,34 @@ function renderResult(result, originalText, opts = {}) {
     confidenceValue.textContent = `${confidencePct}%`;
   }, 150);
 
+  // Check for SEC watchlist hits - if found, override to critical status
+  const hasWatchlistHits = Array.isArray(result.sec_watchlist_hits) && result.sec_watchlist_hits.length > 0;
+
+  // CRITICAL FIX: Get AI confidence score (0-100 scale) for threshold-based status logic
+  const aiScore = Number.isFinite(result.ai_confidence)
+    ? (result.ai_confidence <= 1 ? result.ai_confidence * 100 : result.ai_confidence)
+    : (Number.isFinite(result.scorePct) ? result.scorePct : 0);
+
+  // Determine effective status directly from backend threat level assessment
+  const effectiveStatus = String(result.threat_level || result.status || 'safe').toLowerCase();
+
   // Render the security scan results checklist
   renderSecurityScanResults(result);
 
-  switch (result.status) {
+  switch (effectiveStatus) {
     case 'safe':
       viewResult.classList.add('result-safe');
       resultIcon.innerHTML  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="38" height="38"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>';
-      resultLabel.textContent = 'Low Risk';
+      resultLabel.textContent = 'SAFE';
       // No action buttons for safe results
       break;
     case 'warning':
       viewResult.classList.add('result-warning');
       resultIcon.innerHTML  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="38" height="38"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-      resultLabel.textContent = 'Review Needed';
+      resultLabel.textContent = 'WARNING';
+      if (resultMessage) {
+        resultMessage.textContent = result.message || 'Suspicious patterns detected.';
+      }
       if (isExpertRole()) {
         btnConfirmScam.classList.remove('hidden');
         btnInvestigateFurther.classList.remove('hidden');
@@ -1787,7 +1834,15 @@ function renderResult(result, originalText, opts = {}) {
     case 'critical':
       viewResult.classList.add('result-critical');
       resultIcon.innerHTML  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="38" height="38"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-      resultLabel.textContent = 'CRITICAL RISK';
+      resultLabel.textContent = 'CRITICAL';
+      if (resultMessage) {
+        if (hasWatchlistHits) {
+          const names = result.sec_watchlist_hits.map(h => h.matched_name || h.matched_with).filter(Boolean);
+          resultMessage.textContent = `⚠️ Matched SEC/DTI watchlist: ${names.join(', ')}`;
+        } else {
+          resultMessage.textContent = result.message || 'Critical risk patterns detected.';
+        }
+      }
       if (isExpertRole()) {
         btnConfirmScam.classList.remove('hidden');
         btnInvestigateFurther.classList.remove('hidden');
@@ -1806,6 +1861,37 @@ function renderResult(result, originalText, opts = {}) {
         if (btnVerifySafe) btnVerifySafe.classList.remove('hidden');
       }
   }
+
+  // Check if already reported and hide buttons if so to prevent duplicate submissions
+  try {
+    chrome.storage.local.get('suriin_reported_texts', (stored) => {
+      const existing = (stored && typeof stored['suriin_reported_texts'] === 'object')
+        ? stored['suriin_reported_texts']
+        : {};
+      
+      const mainText = lastScanData.rawText || lastScanData.text;
+      const mainKey = makeReportedKey(lastScanData.url, mainText);
+      let isAlreadyReported = !!existing[mainKey];
+
+      if (!isAlreadyReported && Array.isArray(lastScanData.flaggedResults) && lastScanData.flaggedResults.length > 0) {
+        // For scan current chat with multiple messages, check if all flagged results are already reported
+        isAlreadyReported = lastScanData.flaggedResults.every(r => {
+          const itemKey = makeReportedKey(lastScanData.url, r.text);
+          return !!existing[itemKey];
+        });
+      }
+
+      if (isAlreadyReported) {
+        btnExpertReview.classList.add('hidden');
+        btnReportEvidence.classList.add('hidden');
+        btnConfirmScam.classList.add('hidden');
+        btnInvestigateFurther.classList.add('hidden');
+        if (btnVerifySafe) btnVerifySafe.classList.add('hidden');
+      }
+    });
+  } catch (err) {
+    console.error('[SuriinAI] Error checking reported button state:', err);
+  }
 }
 
 /**
@@ -1819,10 +1905,27 @@ function renderSecurityScanResults(result) {
 
   const aiRow = container.querySelector('.scan-result-item[data-layer="message-tone"]');
   const watchRow = container.querySelector('.scan-result-item[data-layer="gov-records"]');
-  if (!aiRow || !watchRow) return;
+  const whitelistRow = container.querySelector('.scan-result-item[data-layer="whitelist-records"]');
 
-  // AI row
-  {
+  // Reset rows first
+  if (watchRow) {
+    watchRow.setAttribute('data-severity', 'safe');
+    const watchTextEl = watchRow.querySelector('.scan-result-text');
+    if (watchTextEl) watchTextEl.textContent = 'No Watchlist Match';
+  }
+
+  if (whitelistRow) {
+    whitelistRow.setAttribute('data-severity', 'safe');
+    const wTextEl = whitelistRow.querySelector('.scan-result-text');
+    if (wTextEl) {
+      wTextEl.textContent = 'No Whitelist Match';
+      wTextEl.style.color = '';
+      wTextEl.style.fontWeight = '';
+    }
+  }
+
+  // 1. AI row
+  if (aiRow) {
     const aiScan = result?.ai_scan;
     const aiStatus = String(aiScan?.status || '').trim().toUpperCase();
     const isSuspicious = aiStatus === 'SUSPICIOUS';
@@ -1834,20 +1937,54 @@ function renderSecurityScanResults(result) {
     if (textEl) textEl.textContent = displayText;
   }
 
-  // Watchlist row
-  {
-    const wl = result?.watchlist;
-    const wlStatus = String(wl?.status || '').trim().toUpperCase();
-    const isMatched = wlStatus === 'MATCHED';
-    const severity = isMatched ? 'critical' : 'safe';
-    const company = wl?.matched_company || null;
-    const displayText = isMatched
-      ? (company ? `SEC Watchlist: ${company}` : 'SEC/DTI Watchlist Match')
-      : 'No Watchlist Match';
+  // 2. Watchlist row (SEC Blacklist / Advisories - RED / CRITICAL)
+  if (watchRow) {
+    const hits = result?.sec_watchlist_hits;
+    const hasHits = Array.isArray(hits) && hits.length > 0;
 
-    watchRow.setAttribute('data-severity', severity);
-    const textEl = watchRow.querySelector('.scan-result-text');
-    if (textEl) textEl.textContent = displayText;
+    if (hasHits) {
+      const severity = 'critical';
+      let displayText;
+
+      if (hits.length === 1) {
+        const hit = hits[0];
+        const matchedName = hit.matched_name || hit.matched_with || 'Unknown';
+        const confidence = hit.confidence || hit.match_score || 100;
+        displayText = `Matched SEC Advisory: ${matchedName} (${confidence}%)`;
+      } else {
+        const hit = hits[0];
+        const matchedName = hit.matched_name || hit.matched_with || 'Unknown';
+        displayText = `${hits.length} SEC Watchlist Matches (${matchedName} +${hits.length - 1} more)`;
+      }
+
+      watchRow.setAttribute('data-severity', severity);
+      const textEl = watchRow.querySelector('.scan-result-text');
+      if (textEl) textEl.textContent = displayText;
+    }
+  }
+
+  // 3. Whitelist row (SEC Whitelist / Registered Companies - GREEN / LEGIT)
+  if (whitelistRow) {
+    const wHits = result?.sec_whitelist_hits || result?.whitelist?.sec_whitelist_hits;
+    const hasWHits = Array.isArray(wHits) && wHits.length > 0;
+    const matchedCompany = result?.whitelist?.matched_company || (hasWHits ? (wHits[0].matched_name || wHits[0].company_name) : null);
+    const isMatched = result?.whitelist?.status === 'MATCHED' || hasWHits || !!matchedCompany;
+
+    if (isMatched) {
+      const hit = hasWHits ? wHits[0] : null;
+      const matchedName = matchedCompany || hit?.matched_name || hit?.company_name || 'SEC Registered Entity';
+      const displayText = `Matched SEC Whitelist: ${matchedName}`;
+
+      whitelistRow.setAttribute('data-severity', 'legit');
+      const badgeEl = whitelistRow.querySelector('.scan-result-badge');
+      if (badgeEl) badgeEl.textContent = '🟢';
+      const textEl = whitelistRow.querySelector('.scan-result-text');
+      if (textEl) {
+        textEl.textContent = displayText;
+        textEl.style.color = '#22C55E';
+        textEl.style.fontWeight = '600';
+      }
+    }
   }
 }
 
@@ -1957,108 +2094,149 @@ async function handleReportSubmit(type) {
   const originalText = submitBtn.textContent;
   submitBtn.textContent = 'Submitting…';
 
-  const _rawFlagged = Array.isArray(lastScanData.flaggedResults) ? lastScanData.flaggedResults : [];
-  // B3: deduplicate by text hash so each unique scam message = one report item
-  // Also skip near-duplicates (substring relationships)
-  const _seenTextKeys = new Set();
-  const _dedupedFlagged = _rawFlagged.filter((r) => {
-    const k = String(r.text || '').trim();
-    if (!k) return false;
-    // Skip if exact match already seen
-    if (_seenTextKeys.has(k)) return false;
-    // Skip if this text is a substring of any already-seen text (or vice-versa)
-    for (const existing of _seenTextKeys) {
-      if (k.includes(existing) || existing.includes(k)) {
-        return false;
-      }
-    }
-    _seenTextKeys.add(k);
-    return true;
-  });
-  const _hasFlagged = _dedupedFlagged.length > 0;
-  const _aiVerdict = String(lastScanData.status || '').toUpperCase() || 'WARNING';
-  const _threatSeverity = isCritical ? 'High' : 'Normal';
-  const payload = _hasFlagged
-    ? {
-        action: 'SUBMIT_BULK_REPORT',
-        data: {
-          items: _dedupedFlagged.map((r) => ({
-            text:           String(r.text || '').substring(0, 5000),
-            riskScore:      Number(r.score ?? 0) / 100,
-            aiStatus:       (() => { const s = String(r.ai_scan?.status || r.status || '').toUpperCase(); if (s === 'SUSPICIOUS') return 'WARNING'; if (s === 'MATCHED') return 'CRITICAL'; return s || 'WARNING'; })(),
-            aiConfidence:   typeof r.ai_scan?.ai_confidence === 'number' ? r.ai_scan.ai_confidence : 0,
-            matchedCompany: r.watchlist?.matched_company || null,
-            triggerTokens:  Array.isArray(r.ai_scan?.trigger_tokens) ? r.ai_scan.trigger_tokens : []
-          })),
-          url:              lastScanData.url,
-          aiVerdict:        _aiVerdict,
-          threatSeverity:   _threatSeverity,
-          userContext:      userContext,
-          sourceIdentifier: finalSuspect
-        }
-      }
-    : {
-        action: 'SUBMIT_REPORT',
-        data: {
-          evidence:         (lastScanData.rawText || lastScanData.text).substring(0, 5000),
-          url:              lastScanData.url,
-          riskScore:        lastScanData.confidence,
-          aiVerdict:        _aiVerdict,
-          threatSeverity:   _threatSeverity,
-          aiConfidence:     lastScanData.ai_confidence || 0,
-          matchedCompany:   lastScanData.matched_company || null,
-          triggerTokens:    Array.isArray(lastScanData.ai_scan?.trigger_tokens) ? lastScanData.ai_scan.trigger_tokens : [],
-          userContext:      userContext,
-          sourceIdentifier: finalSuspect
-        }
-      };
-
   try {
-    const response = await chrome.runtime.sendMessage(payload);
+    chrome.storage.local.get('suriin_reported_texts', async (stored) => {
+      const existing = (stored && typeof stored['suriin_reported_texts'] === 'object')
+        ? stored['suriin_reported_texts']
+        : {};
 
-    if (response?.success) {
-      // Background acknowledged the job (may still be in-flight).
-      // Show success UI immediately so the popup feels responsive.
-      const formElements = (isCritical ? viewReportForm : viewExpertReview)
-        .querySelectorAll('.form-prefill-group, .form-prefill, .form-group, .consent-row, .btn-danger, .btn-warning');
-      formElements.forEach(el => el.style.display = 'none');
-      successEl.classList.remove('hidden');
-      _forceSuccessResize(successEl);
-
-      if (isInlineEmbed && !response.pending) {
-        notifyInlineSuccess(inlineSuccess);
-      }
-
-      // If pending, watch storage for the final result (catches auth/network errors)
-      if (response.pending) {
-        const checkResult = (changes) => {
-          if (!('suriin_last_submit_result' in changes)) return;
-          chrome.storage.onChanged.removeListener(checkResult);
-          const r = changes.suriin_last_submit_result.newValue;
-          if (r && r.success) {
-            if (isInlineEmbed) notifyInlineSuccess(inlineSuccess);
-            return;
+      const _rawFlagged = Array.isArray(lastScanData.flaggedResults) ? lastScanData.flaggedResults : [];
+      // B3: deduplicate by text hash so each unique scam message = one report item
+      // Also skip near-duplicates (substring relationships)
+      const _seenTextKeys = new Set();
+      const _dedupedFlagged = _rawFlagged.filter((r) => {
+        const k = String(r.text || '').trim();
+        if (!k) return false;
+        // Skip if exact match already seen
+        if (_seenTextKeys.has(k)) return false;
+        // Skip if this text is a substring of any already-seen text (or vice-versa)
+        for (const existingVal of _seenTextKeys) {
+          if (k.includes(existingVal) || existingVal.includes(k)) {
+            return false;
           }
-          if (r && !r.success) {
-            successEl.classList.add('hidden');
-            formElements.forEach(el => el.style.display = '');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-            alert('Report submission failed: ' + (r.error || 'Unknown error'));
+        }
+        _seenTextKeys.add(k);
+        return true;
+      });
+
+      // Exclude already-reported items from the bulk reporting payload
+      const _unreportedFlagged = _dedupedFlagged.filter((r) => {
+        const itemKey = makeReportedKey(lastScanData.url, r.text);
+        return !existing[itemKey];
+      });
+
+      const _hasFlagged = _unreportedFlagged.length > 0;
+      const _aiVerdict = String(lastScanData.status || '').toUpperCase() || 'WARNING';
+      const _threatSeverity = isCritical ? 'High' : 'Normal';
+      const payload = _hasFlagged
+        ? {
+            action: 'SUBMIT_BULK_REPORT',
+            data: {
+              items: _unreportedFlagged.map((r) => ({
+                text:           String(r.text || '').substring(0, 5000),
+                riskScore:      Number(r.score ?? 0) / 100,
+                aiStatus:       (() => { const s = String(r.ai_scan?.status || r.status || '').toUpperCase(); if (s === 'SUSPICIOUS') return 'WARNING'; if (s === 'MATCHED') return 'CRITICAL'; return s || 'WARNING'; })(),
+                aiConfidence:   typeof r.ai_scan?.ai_confidence === 'number' ? r.ai_scan.ai_confidence : 0,
+                matchedCompany: r.watchlist?.matched_company || null,
+                triggerTokens:  Array.isArray(r.ai_scan?.trigger_tokens) ? r.ai_scan.trigger_tokens : []
+              })),
+              url:              lastScanData.url,
+              aiVerdict:        _aiVerdict,
+              threatSeverity:   _threatSeverity,
+              userContext:      userContext,
+              sourceIdentifier: finalSuspect
+            }
           }
-        };
-        chrome.storage.onChanged.addListener(checkResult);
-        // Auto-remove listener after 35s (past the fetch timeout)
-        setTimeout(() => chrome.storage.onChanged.removeListener(checkResult), 35000);
+        : {
+            action: 'SUBMIT_REPORT',
+            data: {
+              evidence:         (lastScanData.rawText || lastScanData.text).substring(0, 5000),
+              url:              lastScanData.url,
+              riskScore:        lastScanData.confidence,
+              aiVerdict:        _aiVerdict,
+              threatSeverity:   _threatSeverity,
+              aiConfidence:     lastScanData.ai_confidence || 0,
+              matchedCompany:   lastScanData.matched_company || null,
+              triggerTokens:    Array.isArray(lastScanData.ai_scan?.trigger_tokens) ? lastScanData.ai_scan.trigger_tokens : [],
+              userContext:      userContext,
+              sourceIdentifier: finalSuspect
+            }
+          };
+
+      try {
+        const response = await chrome.runtime.sendMessage(payload);
+
+        if (response?.success) {
+          // Save reported texts state locally to sync icons across the page in real-time
+          try {
+            const textsToMark = [];
+            if (_dedupedFlagged.length > 0) {
+              _dedupedFlagged.forEach(item => {
+                if (item.text) textsToMark.push(item.text);
+              });
+            } else {
+              textsToMark.push(lastScanData.rawText || lastScanData.text);
+            }
+            chrome.storage.local.get('suriin_reported_texts', (stored2) => {
+              const existing2 = (stored2 && typeof stored2['suriin_reported_texts'] === 'object')
+                ? stored2['suriin_reported_texts']
+                : {};
+              textsToMark.forEach(text => {
+                const rKey = makeReportedKey(lastScanData.url, text);
+                existing2[rKey] = inlineSuccess;
+              });
+              chrome.storage.local.set({ 'suriin_reported_texts': existing2 }, () => {
+                if (isInlineEmbed && !response.pending) {
+                  notifyInlineSuccess(inlineSuccess);
+                }
+              });
+            });
+          } catch (err) {
+            console.error('[SuriinAI] Error saving reported texts state:', err);
+          }
+
+          // Background acknowledged the job (may still be in-flight).
+          // Show success UI immediately so the popup feels responsive.
+          const formElements = (isCritical ? viewReportForm : viewExpertReview)
+            .querySelectorAll('.form-prefill-group, .form-prefill, .form-group, .consent-row, .btn-danger, .btn-warning');
+          formElements.forEach(el => el.style.display = 'none');
+          successEl.classList.remove('hidden');
+          _forceSuccessResize(successEl);
+
+          // If pending, watch storage for the final result (catches auth/network errors)
+          if (response.pending) {
+            const checkResult = (changes) => {
+              if (!('suriin_last_submit_result' in changes)) return;
+              chrome.storage.onChanged.removeListener(checkResult);
+              const r = changes.suriin_last_submit_result.newValue;
+              if (r && r.success) {
+                if (isInlineEmbed) notifyInlineSuccess(inlineSuccess);
+                return;
+              }
+              if (r && !r.success) {
+                successEl.classList.add('hidden');
+                formElements.forEach(el => el.style.display = '');
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                alert('Submission failed: ' + (r.error || 'Unknown error'));
+              }
+            };
+            chrome.storage.onChanged.addListener(checkResult);
+          }
+        } else {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          alert('Submission failed: ' + (response?.error || 'Unknown error'));
+        }
+      } catch (e) {
+        console.error('[SuriinAI] handleReportSubmit error during background message:', e);
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        alert('Error: ' + e.message);
       }
-    } else {
-      alert('Failed to submit report: ' + (response?.error || 'Unknown error'));
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalText;
-    }
+    });
   } catch (err) {
-    console.error('[SuriinAI] Report submission error:', err);
-    alert('Failed to submit report. Please try again.');
+    console.error('[SuriinAI] handleReportSubmit error in storage retrieval:', err);
     submitBtn.disabled = false;
     submitBtn.textContent = originalText;
   }
@@ -3229,3 +3407,34 @@ function chromeStorageLocalSet(items) {
     });
   });
 }
+
+// ── SURIIN INLINE SUCCESS BROADCAST HELPER ──
+
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16);
+}
+
+function makeReportedKey(url, text) {
+  let host = 'facebook.com';
+  try {
+    if (url) host = new URL(url).hostname;
+  } catch {}
+  host = host.replace(/^www\./i, '').toLowerCase();
+  if (host.includes('facebook.com') || host.includes('messenger.com')) {
+    host = 'facebook.com';
+  }
+  const t = String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return `${host}|rp|${fnv1a(t)}`;
+}
+
+window.addEventListener('message', (ev) => {
+  const d = ev?.data;
+  if (d && d.type === 'SURIIN_INLINE_SUCCESS_EXTERNAL') {
+    showInlineSuccessView(d.successType);
+  }
+});

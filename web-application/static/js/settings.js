@@ -528,6 +528,9 @@ function setupDataPrivacyControls(user, db) {
     exportBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       exportBtn.disabled = true;
+      const originalText = exportBtn.textContent;
+      exportBtn.innerHTML = '<span class="spinner"></span> Generating PDF...';
+      
       try {
         const response = await fetch('/api/user/export-data', {
           method: 'POST',
@@ -538,16 +541,84 @@ function setupDataPrivacyControls(user, db) {
         });
 
         if (response.ok) {
-          showSettingsToast('Data export requested! Check your email in 24 hours.', 'success');
-          console.log('[SuriinAI Settings] Data export initiated');
+          // Get the blob and show in preview overlay
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const fileName = 'SuriinAI_UserData_Export.pdf';
+          
+          // Build preview overlay
+          const overlayEl = document.createElement('div');
+          overlayEl.className = 'pdf-preview-overlay';
+          overlayEl.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+          const cardEl = document.createElement('div');
+          cardEl.className = 'pdf-preview-card';
+          cardEl.style.cssText = 'background:#1e1e2f;border-radius:12px;width:90%;max-width:900px;height:90%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 50px rgba(0,0,0,0.5);';
+
+          const headerEl = document.createElement('div');
+          headerEl.className = 'pdf-preview-header';
+          headerEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #333;background:#252538;';
+
+          const titleEl = document.createElement('span');
+          titleEl.className = 'pdf-preview-header__title';
+          titleEl.style.cssText = 'color:#fff;font-size:14px;font-weight:500;';
+          titleEl.textContent = `📄 ${fileName}`;
+
+          const btnGroup = document.createElement('div');
+          btnGroup.style.cssText = 'display:flex;gap:8px;';
+
+          const dlBtn = document.createElement('a');
+          dlBtn.className = 'pdf-preview-header__btn pdf-preview-header__btn--download';
+          dlBtn.style.cssText = 'padding:6px 12px;background:#6C63FF;color:#fff;border-radius:6px;text-decoration:none;font-size:12px;font-weight:500;';
+          dlBtn.href = blobUrl;
+          dlBtn.download = fileName;
+          dlBtn.textContent = '⬇ Download';
+
+          const closeBtn = document.createElement('button');
+          closeBtn.className = 'pdf-preview-header__btn pdf-preview-header__btn--close';
+          closeBtn.style.cssText = 'padding:6px 12px;background:#374151;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;';
+          closeBtn.textContent = '✕ Close';
+
+          btnGroup.appendChild(dlBtn);
+          btnGroup.appendChild(closeBtn);
+          headerEl.appendChild(titleEl);
+          headerEl.appendChild(btnGroup);
+
+          const frameEl = document.createElement('iframe');
+          frameEl.className = 'pdf-preview-frame';
+          frameEl.style.cssText = 'flex:1;border:none;width:100%;background:#fff;';
+          frameEl.src = blobUrl;
+          frameEl.title = 'PDF Preview';
+
+          cardEl.appendChild(headerEl);
+          cardEl.appendChild(frameEl);
+          overlayEl.appendChild(cardEl);
+          document.body.appendChild(overlayEl);
+
+          // Close handlers
+          function closePdfPreview() {
+            overlayEl.remove();
+            URL.revokeObjectURL(blobUrl);
+            document.removeEventListener('keydown', onEsc);
+          }
+          function onEsc(e) { if (e.key === 'Escape') closePdfPreview(); }
+
+          closeBtn.addEventListener('click', closePdfPreview);
+          overlayEl.addEventListener('click', (e) => { if (e.target === overlayEl) closePdfPreview(); });
+          document.addEventListener('keydown', onEsc);
+          
+          showSettingsToast('PDF ready - preview opened.', 'success');
+          console.log('[SuriinAI Settings] Data export PDF preview opened');
         } else {
-          showSettingsToast('Failed to request data export. Please try again.', 'error');
+          const errorData = await response.json().catch(() => ({}));
+          showSettingsToast(errorData.error || 'Failed to generate export. Please try again.', 'error');
         }
       } catch (err) {
-        console.error('[SuriinAI Settings] Error requesting data export:', err);
+        console.error('[SuriinAI Settings] Error generating data export:', err);
         showSettingsToast(`Error: ${err.message}`, 'error');
       } finally {
         exportBtn.disabled = false;
+        exportBtn.textContent = originalText;
       }
     });
   }
@@ -556,47 +627,154 @@ function setupDataPrivacyControls(user, db) {
     deleteBtn.addEventListener('click', async (e) => {
       e.preventDefault();
 
-      const confirmed = confirm(
-        'Are you sure you want to delete your account and all associated data?\n\n' +
-        'This action CANNOT be undone. All your submitted reports, personal information, ' +
-        'and settings will be permanently deleted from our servers.\n\n' +
-        'Please type your email address to confirm: ' + user.email
-      );
+      // Enhanced confirmation dialog with email verification - DARK THEME
+      const confirmationHtml = `
+        <div style="font-family: system-ui, -apple-system, sans-serif; color: #F3F4F6; padding: 0 24px;">
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+            <h3 style="color: #ef4444; margin: 0 0 12px 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+              <svg width="24" height="24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Delete Account Permanently
+            </h3>
+            <p style="color: #fca5a5; margin: 0; font-size: 14px; line-height: 1.5;">
+              This action <strong style="color: #F3F4F6;">CANNOT be undone</strong>. Your account and personal data will be permanently removed from our servers.
+            </p>
+          </div>
+          
+          <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 12px 0; font-size: 14px; color: #F3F4F6;">What will happen:</h4>
+            <ul style="margin: 0; padding-left: 20px; color: #9CA3AF; font-size: 13px; line-height: 1.6;">
+              <li>Your account will be permanently deleted from Firebase Auth</li>
+              <li>Your profile will be removed from our database</li>
+              <li>Your submitted reports will be <strong style="color: #F3F4F6;">anonymized</strong> (reporter changed to 'anonymous')</li>
+              <li>Report evidence and threat data will be preserved to help protect others</li>
+            </ul>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 14px; color: #F3F4F6;">
+              <input type="checkbox" id="delete-confirm-checkbox" style="margin-top: 2px; accent-color: #ef4444;">
+              <span>I understand this action cannot be undone and I want to permanently delete my account.</span>
+            </label>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 13px; color: #6B7280; margin-bottom: 6px;">
+              To confirm, type your email address: <strong style="color: #F3F4F6;">${user.email}</strong>
+            </label>
+            <input type="email" id="delete-confirm-email" placeholder="Enter your email" 
+              style="width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; color: #F3F4F6; box-sizing: border-box; outline: none;">
+          </div>
+        </div>
+      `;
 
-      if (!confirmed) return;
-
-      deleteBtn.disabled = true;
-      try {
-        const response = await fetch('/api/user/delete-account', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${await user.getIdToken()}`
-          }
-        });
-
-        if (response.ok) {
-          showSettingsToast('Account deletion initiated. Redirecting...', 'success');
-          console.log('[SuriinAI Settings] Account deletion initiated');
-
-          // Sign out and redirect after a brief delay
-          setTimeout(async () => {
-            try {
-              await firebase.auth().signOut();
-              window.location.href = '/';
-            } catch (err) {
-              console.error('[SuriinAI Settings] Error signing out:', err);
-            }
-          }, 1000);
-        } else {
-          showSettingsToast('Failed to delete account. Please try again or contact support.', 'error');
-        }
-      } catch (err) {
-        console.error('[SuriinAI Settings] Error deleting account:', err);
-        showSettingsToast(`Error: ${err.message}`, 'error');
-      } finally {
-        deleteBtn.disabled = false;
+      // Create modal overlay - DARK THEME
+      const modalOverlay = document.createElement('div');
+      modalOverlay.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.8); z-index: 10000;
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+      `;
+      
+      const modalContent = document.createElement('div');
+      modalContent.style.cssText = `
+        background: rgba(17, 24, 39, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; max-width: 540px; width: 100%;
+        backdrop-filter: blur(24px) saturate(1.2); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); padding-top: 24px;
+      `;
+      modalContent.innerHTML = confirmationHtml + `
+        <div style="display: flex; gap: 12px; padding: 20px 24px 24px 24px;">
+          <button id="confirm-delete-btn" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #ef4444, #DC2626); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; opacity: 0.5; transition: opacity 0.2s;" disabled>
+            Delete My Account
+          </button>
+          <button id="cancel-delete-btn" style="flex: 1; padding: 12px; background: transparent; color: #9CA3AF; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+            Cancel
+          </button>
+        </div>
+      `;
+      
+      modalOverlay.appendChild(modalContent);
+      document.body.appendChild(modalOverlay);
+      
+      // Prevent background scrolling
+      document.body.style.overflow = 'hidden';
+      
+      // Handle checkbox and email validation
+      const checkbox = modalContent.querySelector('#delete-confirm-checkbox');
+      const emailInput = modalContent.querySelector('#delete-confirm-email');
+      const confirmBtn = modalContent.querySelector('#confirm-delete-btn');
+      const cancelBtn = modalContent.querySelector('#cancel-delete-btn');
+      
+      function validateConfirmation() {
+        const isChecked = checkbox.checked;
+        const emailMatches = emailInput.value.trim().toLowerCase() === user.email.toLowerCase();
+        confirmBtn.disabled = !(isChecked && emailMatches);
+        confirmBtn.style.opacity = confirmBtn.disabled ? '0.5' : '1';
       }
+      
+      checkbox.addEventListener('change', validateConfirmation);
+      emailInput.addEventListener('input', validateConfirmation);
+      
+      // Close modal function
+      function closeModal() {
+        document.body.style.overflow = '';
+        modalOverlay.remove();
+      }
+      
+      cancelBtn.addEventListener('click', closeModal);
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+      });
+      
+      // Handle confirmed deletion
+      confirmBtn.addEventListener('click', async () => {
+        closeModal();
+        
+        deleteBtn.disabled = true;
+        const originalText = deleteBtn.textContent;
+        deleteBtn.innerHTML = '<span class="spinner"></span> Deleting...';
+        
+        try {
+          const response = await fetch('/api/user/delete-account', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${await user.getIdToken()}`
+            }
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            showSettingsToast(`Account deleted. ${result.anonymized_reports || 0} reports anonymized. Redirecting...`, 'success');
+            console.log('[SuriinAI Settings] Account deleted successfully');
+
+            // Clear session storage
+            sessionStorage.clear();
+            localStorage.removeItem('suriin_cached_uid');
+
+            // Sign out and redirect after a brief delay
+            setTimeout(async () => {
+              try {
+                const auth = window.__suriinFirebaseAuth || firebase.auth();
+                await auth.signOut();
+                window.location.href = '/?deleted=1';
+              } catch (err) {
+                console.error('[SuriinAI Settings] Error signing out:', err);
+                window.location.href = '/?deleted=1';
+              }
+            }, 2000);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            showSettingsToast(errorData.error || 'Failed to delete account. Please try again or contact support.', 'error');
+            deleteBtn.textContent = originalText;
+            deleteBtn.disabled = false;
+          }
+        } catch (err) {
+          console.error('[SuriinAI Settings] Error deleting account:', err);
+          showSettingsToast(`Error: ${err.message}`, 'error');
+          deleteBtn.textContent = originalText;
+          deleteBtn.disabled = false;
+        }
+      });
     });
   }
 }
