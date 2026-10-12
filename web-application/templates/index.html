@@ -6,8 +6,9 @@
   <meta name="description" content="Suriin AI — Real-time scam detection system. Log in to access your dashboard.">
   <title>Suriin AI — Login</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/auth-layout.css">
 </head>
-<body>
+<body class="auth-page">
 
   <!-- Loading overlay while auth state resolves -->
   <div id="loading-overlay" class="loading-overlay">
@@ -17,7 +18,29 @@
   </div>
 
   <main class="login-wrapper" style="display:none;" id="login-wrapper">
-    <div class="login-card">
+    <div class="auth-shell">
+      <aside class="auth-story" aria-labelledby="auth-story-title">
+        <div class="auth-story__brand"><span aria-hidden="true">◈</span> Suriin AI</div>
+        <div class="auth-story__content">
+          <p class="auth-eyebrow">Real-time scam detection</p>
+          <h2 id="auth-story-title">A second look.<br><span>A safer decision.</span></h2>
+          <p class="auth-story__intro">Spot warning signs in suspicious messages and links before you take the next step.</p>
+          <div class="auth-scan" aria-hidden="true">
+            <div class="auth-scan__top"><span>MESSAGE REVIEW</span><span class="auth-scan__badge">Warning signs</span></div>
+            <p>“Act now to claim your reward. Click the link to verify your account.”</p>
+            <div class="auth-scan__signal"><span></span> Urgency &amp; requests for personal information</div>
+            <div class="auth-scan__track"><span></span></div>
+            <small>Illustrative scan preview</small>
+          </div>
+          <ul class="auth-benefits">
+            <li><span aria-hidden="true">01</span><div><strong>Check before you click</strong><p>Review messages and links for potential risks.</p></div></li>
+            <li><span aria-hidden="true">02</span><div><strong>Keep the bigger picture</strong><p>Revisit your scans and reports in one dashboard.</p></div></li>
+          </ul>
+        </div>
+        <p class="auth-story__footer">Stay informed. Stay one step ahead.</p>
+      </aside>
+    <section class="login-card" aria-label="Account access">
+      <div class="auth-form-panel">
       <!-- Brand -->
       <div class="login-brand">
         <div class="login-brand__icon" aria-hidden="true">🛡️</div>
@@ -30,8 +53,8 @@
 
       <!-- Auth Mode Tabs -->
       <div class="auth-tabs">
-        <button class="auth-tab active" data-mode="signin" type="button">Sign In</button>
-        <button class="auth-tab" data-mode="signup" type="button">Create Account</button>
+        <button class="auth-tab active" data-mode="signin" type="button" aria-pressed="true" aria-controls="login-form">Sign In</button>
+        <button class="auth-tab" data-mode="signup" type="button" aria-pressed="false" aria-controls="signup-form">Create Account</button>
       </div>
 
       <!-- Sign In Form -->
@@ -72,7 +95,7 @@
 
       <!-- Sign Up Form -->
       <form id="signup-form" class="signup-form auth-form" autocomplete="on">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="auth-name-row">
           <div class="form-group" style="margin-bottom:0;">
             <label for="signup-first-name">First Name</label>
             <input
@@ -189,6 +212,9 @@
         </svg>
         <span class="btn-text">Continue with Google</span>
       </button>
+      <p class="auth-policy">Learn how we handle your information in our <a href="/privacy">Privacy Policy</a>.</p>
+      </div>
+    </section>
     </div>
 
     <!-- Forgot Password Modal -->

@@ -955,8 +955,12 @@ authTabs.forEach(tab => {
     const mode = tab.dataset.mode;
     
     // Update tabs
-    authTabs.forEach(t => t.classList.remove('active'));
+    authTabs.forEach(t => {
+      t.classList.remove('active');
+      t.setAttribute('aria-pressed', 'false');
+    });
     tab.classList.add('active');
+    tab.setAttribute('aria-pressed', 'true');
     
     // Update forms
     authForms.forEach(form => form.classList.remove('active'));
